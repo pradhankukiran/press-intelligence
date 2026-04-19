@@ -1,13 +1,13 @@
 # Press Intelligence
 
-Press Intelligence is a local-first demo application for
-editorial analytics and pipeline operations. It combines:
+Press Intelligence is an editorial analytics and pipeline operations
+application for Guardian content flows. It combines:
 
 - `Next.js` frontend for analytics and admin/ops workflows
-- `FastAPI` backend for analytics, pipeline, and health APIs
-- `Airflow` DAGs for scheduled ingestion/backfills
-- `BigQuery` integration for real mode
-- seeded mock data for immediate local demos
+- `FastAPI` backend with structured JSON logging, request correlation, and live/ready probes
+- `Airflow` DAGs for scheduled ingestion and manual backfills
+- `BigQuery` integration (real mode) with parameterized SQL and MERGE-based upserts
+- Seeded mock data for no-credentials local demos
 
 ## Project structure
 
@@ -79,3 +79,40 @@ cd backend
 set -a && source ../.env && set +a
 uv run press-intelligence-bootstrap --days 3
 ```
+
+## Health and readiness
+
+- `GET /api/health/live` — always 200 when the process is up. Use this for
+  container liveness probes.
+- `GET /api/health/ready` — 200 when BigQuery and Airflow are reachable (or
+  running in mock mode); 503 otherwise. Use this for readiness probes.
+- `GET /api/health` — alias of `/api/health/ready` (back-compat).
+
+## Logging
+
+Structured logs via `structlog`. Configure with:
+
+- `LOG_LEVEL` — `DEBUG`, `INFO` (default), `WARNING`, `ERROR`.
+- `LOG_FORMAT` — `console` (default, human-readable) or `json` (ingestible by
+  your observability backend).
+
+Every request is assigned a correlation ID (set or accepted via `X-Request-ID`)
+and echoed back on the response. Errors return a uniform envelope:
+
+```json
+{ "code": "upstream_unavailable", "message": "...", "request_id": "..." }
+```
+
+## Testing
+
+```bash
+cd backend
+uv run python -m pytest --cov=press_intelligence
+```
+
+## Caveats
+
+- Mock-mode backfill state is in-memory and does not survive a restart.
+- `docker compose` mounts `./secrets` at `/app/secrets`. Set
+  `GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/<file>.json` for the container;
+  use a host-absolute path for local runs outside docker.
