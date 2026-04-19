@@ -7,6 +7,7 @@ import httpx
 import structlog
 import uvicorn
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -87,13 +88,14 @@ def _register_exception_handlers(app: FastAPI) -> None:
     async def handle_validation(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        logger.warning("request.validation_error", errors=exc.errors())
+        errors = jsonable_encoder(exc.errors())
+        logger.warning("request.validation_error", errors=errors)
         return _error_response(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             code="validation_error",
             message="Request body or parameters failed validation.",
             request=request,
-            details={"errors": exc.errors()},
+            details={"errors": errors},
         )
 
     @app.exception_handler(StarletteHTTPException)
