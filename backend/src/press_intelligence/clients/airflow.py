@@ -28,7 +28,8 @@ class AirflowClient:
                 response = await client.get(f"{self._settings.airflow_base_url}/health")
                 response.raise_for_status()
             return "connected"
-        except Exception:
+        except httpx.HTTPError as exc:
+            logger.warning("airflow.health.degraded", exc_info=exc)
             return "degraded"
 
     async def trigger_dag(self, dag_id: str, conf: dict[str, Any]) -> dict[str, Any]:
