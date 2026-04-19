@@ -7,6 +7,14 @@
   --accent: #2f6bff;
   --accent-soft: #dbe6ff;
   --border: rgba(0, 0, 0, 0.18);
+  --status-ok: #046c4e;
+  --status-ok-soft: #d4efdf;
+  --status-warn: #b45309;
+  --status-warn-soft: #fde9c7;
+  --status-bad: #991b1b;
+  --status-bad-soft: #fcd5cf;
+  --status-neutral: #3f3f46;
+  --status-neutral-soft: #e5e5e7;
 }
 
 @theme inline {
