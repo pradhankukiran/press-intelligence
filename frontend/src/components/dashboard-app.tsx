@@ -6,6 +6,7 @@ import { FormEvent, ReactNode, startTransition, useEffect, useState } from "reac
 import {
   ApiError,
   type DashboardData,
+  type DateRange,
   fetchAnalyticsData,
   fetchOperationsData,
   fetchOverviewData,
@@ -61,16 +62,20 @@ const routes: Array<{ key: RouteKey | "articles"; label: string; href: string }>
   { key: "ops", label: "Operations", href: "/ops" },
 ];
 
-async function fetchDataForRoute(route: RouteKey): Promise<DashboardData> {
+async function fetchDataForRoute(
+  route: RouteKey,
+  range?: DateRange,
+): Promise<DashboardData> {
   return route === "overview"
-    ? fetchOverviewData()
+    ? fetchOverviewData(range)
     : route === "analytics"
-      ? fetchAnalyticsData()
+      ? fetchAnalyticsData(range)
       : fetchOperationsData();
 }
 
 export function OverviewApp() {
-  const { data, error, isLoading, refresh } = useDashboardData("overview");
+  const [range, setRange] = useState<DateRange>({});
+  const { data, error, isLoading, refresh } = useDashboardData("overview", range);
 
   return (
     <DashboardShell
@@ -90,6 +95,7 @@ export function OverviewApp() {
       isLoading={isLoading}
       onRetry={refresh}
     >
+      <DateRangeFilter range={range} onChange={setRange} />
       {data ? (
         <>
           <section className="grid gap-5">
@@ -154,7 +160,8 @@ export function OverviewApp() {
 }
 
 export function AnalyticsApp() {
-  const { data, error, isLoading, refresh } = useDashboardData("analytics");
+  const [range, setRange] = useState<DateRange>({});
+  const { data, error, isLoading, refresh } = useDashboardData("analytics", range);
 
   return (
     <DashboardShell
@@ -173,6 +180,7 @@ export function AnalyticsApp() {
       isLoading={isLoading}
       onRetry={refresh}
     >
+      <DateRangeFilter range={range} onChange={setRange} />
       {data ? (
         <>
           <section className="grid gap-5">
@@ -368,7 +376,57 @@ function toDashboardError(loadError: unknown): DashboardError {
   return { message: "Failed to load dashboard." };
 }
 
-function useDashboardData(route: RouteKey) {
+function DateRangeFilter({
+  range,
+  onChange,
+}: {
+  range: DateRange;
+  onChange: (next: DateRange) => void;
+}) {
+  return (
+    <section className="border border-black bg-white px-6 py-4">
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/60">
+          Date range
+        </div>
+        <label className="flex items-center gap-2">
+          <span className="text-black/70">From</span>
+          <input
+            type="date"
+            value={range.fromDate ?? ""}
+            onChange={(e) =>
+              onChange({ ...range, fromDate: e.target.value || undefined })
+            }
+            className="border border-black bg-white px-3 py-2 text-black outline-none focus:border-[color:var(--accent)]"
+          />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-black/70">To</span>
+          <input
+            type="date"
+            value={range.toDate ?? ""}
+            onChange={(e) =>
+              onChange({ ...range, toDate: e.target.value || undefined })
+            }
+            className="border border-black bg-white px-3 py-2 text-black outline-none focus:border-[color:var(--accent)]"
+          />
+        </label>
+        {(range.fromDate || range.toDate) && (
+          <button
+            type="button"
+            onClick={() => onChange({})}
+            className="ml-auto inline-flex items-center justify-center border border-black bg-[color:var(--background)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-black transition hover:bg-[color:var(--accent-soft)]"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
+function useDashboardData(route: RouteKey, range?: DateRange) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<DashboardError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -376,6 +434,9 @@ function useDashboardData(route: RouteKey) {
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("2026-03-01");
   const [endDate, setEndDate] = useState("2026-03-03");
+
+  const fromDate = range?.fromDate ?? null;
+  const toDate = range?.toDate ?? null;
 
   useEffect(() => {
     let isActive = true;
@@ -385,7 +446,10 @@ function useDashboardData(route: RouteKey) {
       setError(null);
 
       try {
-        const next = await fetchDataForRoute(route);
+        const next = await fetchDataForRoute(route, {
+          fromDate: fromDate ?? undefined,
+          toDate: toDate ?? undefined,
+        });
         if (isActive) {
           startTransition(() => setData(next));
         }
@@ -405,14 +469,17 @@ function useDashboardData(route: RouteKey) {
     return () => {
       isActive = false;
     };
-  }, [route]);
+  }, [route, fromDate, toDate]);
 
   async function refreshDashboard(selectedRoute: RouteKey = route) {
     setIsLoading(true);
     setError(null);
 
     try {
-      const next = await fetchDataForRoute(selectedRoute);
+      const next = await fetchDataForRoute(selectedRoute, {
+        fromDate: fromDate ?? undefined,
+        toDate: toDate ?? undefined,
+      });
       startTransition(() => setData(next));
     } catch (loadError) {
       setError(toDashboardError(loadError));
