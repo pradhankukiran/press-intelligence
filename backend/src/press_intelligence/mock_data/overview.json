@@ -1,0 +1,34 @@
+{
+  "range": "2026-03-01 to 2026-03-12",
+  "kpis": [
+    { "label": "Articles synced", "value": "12,842", "delta": "+14.2%", "tone": "up" },
+    { "label": "Sections covered", "value": "18", "delta": "+3", "tone": "up" },
+    { "label": "Freshness lag", "value": "11 min", "delta": "-7 min", "tone": "up" },
+    { "label": "Pipeline failures", "value": "1", "delta": "-2", "tone": "up" }
+  ],
+  "daily_volume": [
+    { "date": "2026-03-01", "value": 860 },
+    { "date": "2026-03-02", "value": 907 },
+    { "date": "2026-03-03", "value": 948 },
+    { "date": "2026-03-04", "value": 1004 },
+    { "date": "2026-03-05", "value": 996 },
+    { "date": "2026-03-06", "value": 1078 },
+    { "date": "2026-03-07", "value": 1104 },
+    { "date": "2026-03-08", "value": 1031 },
+    { "date": "2026-03-09", "value": 1172 },
+    { "date": "2026-03-10", "value": 1210 },
+    { "date": "2026-03-11", "value": 1245 },
+    { "date": "2026-03-12", "value": 1287 }
+  ],
+  "freshness": {
+    "last_sync_at": "2026-03-12T17:42:00Z",
+    "watermark": "2026-03-12T17:30:00Z",
+    "lag": "11 min"
+  },
+  "top_sections": [
+    { "section": "World news", "count": 2844 },
+    { "section": "Politics", "count": 2031 },
+    { "section": "Business", "count": 1794 },
+    { "section": "Culture", "count": 1642 }
+  ]
+}

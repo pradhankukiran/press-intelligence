@@ -1,0 +1,18 @@
+{
+  "environment": "development",
+  "mode": "mock",
+  "last_sync_at": "2026-03-12T17:42:00Z",
+  "freshness_lag": "11 min",
+  "watermark": "2026-03-12T17:30:00Z",
+  "dags": [
+    { "id": "guardian_ingest_recent", "status": "healthy" },
+    { "id": "guardian_backfill_range", "status": "idle" },
+    { "id": "guardian_transform_reporting", "status": "healthy" },
+    { "id": "guardian_data_quality", "status": "healthy" }
+  ],
+  "checks": [
+    { "name": "Missing section names", "status": "pass", "observed_value": "0", "threshold": "0", "detail": "No null section_name rows in the last 24h." },
+    { "name": "Duplicate guardian IDs", "status": "warn", "observed_value": "3", "threshold": "<= 1", "detail": "Three duplicate IDs were quarantined during ingest." },
+    { "name": "Freshness lag", "status": "pass", "observed_value": "11 min", "threshold": "<= 20 min", "detail": "Recent ingest remains within freshness budget." }
+  ]
+}

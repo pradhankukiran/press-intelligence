@@ -1,0 +1,14 @@
+{
+  "range": "2026-03-01 to 2026-03-12",
+  "tags": [
+    { "tag": "Ukraine", "count": 428, "momentum": "+12.6%" },
+    { "tag": "Trump administration", "count": 401, "momentum": "+9.2%" },
+    { "tag": "Climate crisis", "count": 288, "momentum": "+17.1%" },
+    { "tag": "Artificial intelligence", "count": 267, "momentum": "+8.3%" },
+    { "tag": "Middle East", "count": 251, "momentum": "+6.4%" },
+    { "tag": "Cost of living crisis", "count": 219, "momentum": "-2.1%" },
+    { "tag": "Football", "count": 214, "momentum": "+4.8%" },
+    { "tag": "Media", "count": 174, "momentum": "+10.2%" },
+    { "tag": "Data privacy", "count": 132, "momentum": "+15.9%" }
+  ]
+}

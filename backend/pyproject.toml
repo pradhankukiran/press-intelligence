@@ -1,0 +1,27 @@
+[project]
+name = "press-intelligence"
+version = "0.1.0"
+description = "Backend and pipeline services for Press Intelligence."
+readme = "README.md"
+authors = [{ name = "KIRAN", email = "pradhankukiran@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116.1",
+    "google-cloud-bigquery>=3.38.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.11.0",
+    "uvicorn>=0.37.0",
+]
+
+[project.scripts]
+press-intelligence-backend = "press_intelligence.main:main"
+press-intelligence-bootstrap = "press_intelligence.bootstrap:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"

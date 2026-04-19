@@ -1,0 +1,42 @@
+[
+  {
+    "run_id": "scheduled__2026-03-12T17:30:00+00:00",
+    "dag_id": "guardian_ingest_recent",
+    "status": "success",
+    "trigger": "system",
+    "started_at": "2026-03-12T17:30:01Z",
+    "finished_at": "2026-03-12T17:34:21Z",
+    "window": "2026-03-12T16:30:00Z to 2026-03-12T17:30:00Z",
+    "error_summary": null
+  },
+  {
+    "run_id": "scheduled__2026-03-12T17:35:00+00:00",
+    "dag_id": "guardian_transform_reporting",
+    "status": "success",
+    "trigger": "system",
+    "started_at": "2026-03-12T17:35:06Z",
+    "finished_at": "2026-03-12T17:37:18Z",
+    "window": "latest raw load",
+    "error_summary": null
+  },
+  {
+    "run_id": "scheduled__2026-03-12T17:40:00+00:00",
+    "dag_id": "guardian_data_quality",
+    "status": "success",
+    "trigger": "system",
+    "started_at": "2026-03-12T17:40:04Z",
+    "finished_at": "2026-03-12T17:40:38Z",
+    "window": "latest transform output",
+    "error_summary": null
+  },
+  {
+    "run_id": "manual__historic_0307_0310",
+    "dag_id": "guardian_backfill_range",
+    "status": "failed",
+    "trigger": "manual",
+    "started_at": "2026-03-11T12:02:12Z",
+    "finished_at": "2026-03-11T12:09:44Z",
+    "window": "2026-03-07 to 2026-03-10",
+    "error_summary": "Guardian API returned an intermittent 429 on the final page fetch."
+  }
+]

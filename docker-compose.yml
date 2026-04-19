@@ -1,0 +1,137 @@
+services:
+  frontend:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATA_MODE: ${DATA_MODE:-mock}
+      GUARDIAN_API_KEY: ${GUARDIAN_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      BIGQUERY_DATASET_RAW: ${BIGQUERY_DATASET_RAW:-raw_guardian}
+      BIGQUERY_DATASET_ANALYTICS: ${BIGQUERY_DATASET_ANALYTICS:-analytics}
+      BIGQUERY_DATASET_OPS: ${BIGQUERY_DATASET_OPS:-ops}
+      AIRFLOW_BASE_URL: ${AIRFLOW_BASE_URL:-http://airflow-webserver:8080/api/v1}
+      AIRFLOW_USERNAME: ${AIRFLOW_USERNAME:-airflow}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
+    volumes:
+      - ./backend/src:/app/src
+      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  airflow-init:
+    build:
+      context: ./backend
+      dockerfile: airflow/Dockerfile
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+      PYTHONPATH: /opt/press-intelligence/backend/src
+      DATA_MODE: ${DATA_MODE:-mock}
+      GUARDIAN_API_KEY: ${GUARDIAN_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      BIGQUERY_DATASET_RAW: ${BIGQUERY_DATASET_RAW:-raw_guardian}
+      BIGQUERY_DATASET_ANALYTICS: ${BIGQUERY_DATASET_ANALYTICS:-analytics}
+      BIGQUERY_DATASET_OPS: ${BIGQUERY_DATASET_OPS:-ops}
+    entrypoint: /bin/bash
+    command: >
+      -c "airflow db migrate &&
+      airflow users create --username airflow --password airflow --firstname Demo --lastname User --role Admin --email demo@example.com || true"
+    volumes:
+      - ./backend/airflow/dags:/opt/airflow/dags
+      - ./backend/src:/opt/press-intelligence/backend/src
+      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+    depends_on:
+      - postgres
+
+  airflow-webserver:
+    build:
+      context: ./backend
+      dockerfile: airflow/Dockerfile
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+      PYTHONPATH: /opt/press-intelligence/backend/src
+      DATA_MODE: ${DATA_MODE:-mock}
+      GUARDIAN_API_KEY: ${GUARDIAN_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      BIGQUERY_DATASET_RAW: ${BIGQUERY_DATASET_RAW:-raw_guardian}
+      BIGQUERY_DATASET_ANALYTICS: ${BIGQUERY_DATASET_ANALYTICS:-analytics}
+      BIGQUERY_DATASET_OPS: ${BIGQUERY_DATASET_OPS:-ops}
+    command: webserver
+    volumes:
+      - ./backend/airflow/dags:/opt/airflow/dags
+      - ./backend/src:/opt/press-intelligence/backend/src
+      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    build:
+      context: ./backend
+      dockerfile: airflow/Dockerfile
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+      PYTHONPATH: /opt/press-intelligence/backend/src
+      DATA_MODE: ${DATA_MODE:-mock}
+      GUARDIAN_API_KEY: ${GUARDIAN_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      BIGQUERY_DATASET_RAW: ${BIGQUERY_DATASET_RAW:-raw_guardian}
+      BIGQUERY_DATASET_ANALYTICS: ${BIGQUERY_DATASET_ANALYTICS:-analytics}
+      BIGQUERY_DATASET_OPS: ${BIGQUERY_DATASET_OPS:-ops}
+    command: scheduler
+    volumes:
+      - ./backend/airflow/dags:/opt/airflow/dags
+      - ./backend/src:/opt/press-intelligence/backend/src
+      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  frontend_node_modules:
+  postgres_data:

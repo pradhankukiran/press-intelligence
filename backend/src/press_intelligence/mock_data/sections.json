@@ -1,0 +1,23 @@
+{
+  "range": "2026-03-01 to 2026-03-12",
+  "series": [
+    { "date": "2026-03-01", "world": 212, "politics": 144, "business": 121, "culture": 98, "climate": 61, "technology": 54 },
+    { "date": "2026-03-02", "world": 221, "politics": 148, "business": 129, "culture": 93, "climate": 59, "technology": 57 },
+    { "date": "2026-03-03", "world": 227, "politics": 157, "business": 133, "culture": 95, "climate": 63, "technology": 60 },
+    { "date": "2026-03-04", "world": 239, "politics": 162, "business": 140, "culture": 97, "climate": 67, "technology": 64 },
+    { "date": "2026-03-05", "world": 231, "politics": 158, "business": 139, "culture": 90, "climate": 69, "technology": 61 },
+    { "date": "2026-03-06", "world": 252, "politics": 170, "business": 146, "culture": 104, "climate": 74, "technology": 68 },
+    { "date": "2026-03-07", "world": 263, "politics": 176, "business": 150, "culture": 107, "climate": 76, "technology": 70 },
+    { "date": "2026-03-08", "world": 246, "politics": 165, "business": 145, "culture": 102, "climate": 71, "technology": 65 },
+    { "date": "2026-03-09", "world": 278, "politics": 181, "business": 157, "culture": 109, "climate": 78, "technology": 72 },
+    { "date": "2026-03-10", "world": 286, "politics": 188, "business": 161, "culture": 113, "climate": 79, "technology": 76 },
+    { "date": "2026-03-11", "world": 291, "politics": 193, "business": 168, "culture": 117, "climate": 82, "technology": 79 },
+    { "date": "2026-03-12", "world": 298, "politics": 199, "business": 172, "culture": 121, "climate": 86, "technology": 82 }
+  ],
+  "leaders": [
+    { "section": "World news", "count": 2844 },
+    { "section": "Politics", "count": 2041 },
+    { "section": "Business", "count": 1761 },
+    { "section": "Culture", "count": 1246 }
+  ]
+}
