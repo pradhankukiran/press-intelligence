@@ -6,6 +6,8 @@ from press_intelligence.core.dependencies import (
     get_ops_service,
 )
 from press_intelligence.models.schemas import (
+    ArticleDetail,
+    ArticleSearchResponse,
     BackfillRequest,
     BackfillResponse,
     ErrorEnvelope,
@@ -104,6 +106,52 @@ async def analytics_tags(
         limit=limit,
     )
     return TagsResponse.model_validate(data)
+
+
+@router.get(
+    "/analytics/articles",
+    tags=["analytics"],
+    response_model=ArticleSearchResponse,
+)
+async def analytics_articles(
+    from_date: str | None = None,
+    to_date: str | None = None,
+    q: str | None = None,
+    section: str | None = None,
+    tag: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    analytics_service: AnalyticsService = Depends(get_analytics_service),
+) -> ArticleSearchResponse:
+    data = await analytics_service.search_articles(
+        from_date=from_date,
+        to_date=to_date,
+        query=q,
+        section=section,
+        tag=tag,
+        limit=limit,
+        offset=offset,
+    )
+    return ArticleSearchResponse.model_validate(data)
+
+
+@router.get(
+    "/analytics/articles/{guardian_id:path}",
+    tags=["analytics"],
+    response_model=ArticleDetail,
+    responses={404: {"model": ErrorEnvelope}},
+)
+async def analytics_article_detail(
+    guardian_id: str,
+    analytics_service: AnalyticsService = Depends(get_analytics_service),
+) -> ArticleDetail:
+    result = await analytics_service.get_article(guardian_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "article_not_found", "message": "Article was not found."},
+        )
+    return ArticleDetail.model_validate(result)
 
 
 @router.get(
