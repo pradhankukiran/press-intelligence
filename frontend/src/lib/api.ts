@@ -1,4 +1,6 @@
 import type {
+  ArticleDetail,
+  ArticleSearchResponse,
   BackfillResponse,
   OpsStatusResponse,
   OverviewResponse,
@@ -168,4 +170,34 @@ export async function triggerBackfill(
       end_date: endDate,
     }),
   });
+}
+
+export type ArticleSearchParams = {
+  query?: string;
+  section?: string;
+  tag?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function fetchArticles(
+  params: ArticleSearchParams = {},
+): Promise<ArticleSearchResponse> {
+  const search = new URLSearchParams();
+  if (params.query) search.set("q", params.query);
+  if (params.section) search.set("section", params.section);
+  if (params.tag) search.set("tag", params.tag);
+  if (params.fromDate) search.set("from_date", params.fromDate);
+  if (params.toDate) search.set("to_date", params.toDate);
+  search.set("limit", String(params.limit ?? 20));
+  search.set("offset", String(params.offset ?? 0));
+  return requestJson<ArticleSearchResponse>(`/api/analytics/articles?${search.toString()}`);
+}
+
+export async function fetchArticle(guardianId: string): Promise<ArticleDetail> {
+  return requestJson<ArticleDetail>(
+    `/api/analytics/articles/${encodeURI(guardianId)}`,
+  );
 }

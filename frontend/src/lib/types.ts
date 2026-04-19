@@ -96,3 +96,27 @@ export interface BackfillResponse {
   status: "queued" | "running" | "success" | "failed";
   message: string;
 }
+
+export interface ArticleSummary {
+  guardian_id: string;
+  web_title: string;
+  web_url: string | null;
+  section_id: string | null;
+  section_name: string | null;
+  pillar_name: string | null;
+  published_at: string;
+  tags: string[];
+}
+
+export interface ArticleDetail extends ArticleSummary {
+  raw_payload: Record<string, unknown> | null;
+}
+
+export interface ArticleSearchResponse {
+  range: string;
+  query: string | null;
+  section: string | null;
+  tag: string | null;
+  total: number;
+  articles: ArticleSummary[];
+}
