@@ -29,12 +29,15 @@ class BigQueryWarehouse:
         return self._client
 
     async def healthcheck(self) -> str:
+        from google.api_core.exceptions import GoogleAPIError
+
         if self._settings.data_mode == "mock":
             return "mock"
         try:
             await asyncio.to_thread(self._list_datasets_probe)
             return "connected"
-        except Exception:
+        except (GoogleAPIError, OSError) as exc:
+            logger.warning("warehouse.health.degraded", exc_info=exc)
             return "degraded"
 
     async def query_from_sql(
@@ -42,17 +45,12 @@ class BigQueryWarehouse:
         sql_path: str,
         params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-        from google.api_core.exceptions import NotFound
-
         await self.ensure_base_resources()
         rendered = self._render_sql(sql_path)
-        try:
-            return await asyncio.to_thread(
-                self._run_query,
-                rendered.format(**self._template_params(params)),
-            )
-        except NotFound:
-            return []
+        return await asyncio.to_thread(
+            self._run_query,
+            rendered.format(**self._template_params(params)),
+        )
 
     async def execute_sql(
         self,
@@ -257,6 +255,7 @@ class BigQueryWarehouse:
         try:
             table = client.get_table(table_id)
         except NotFound:
+            logger.warning("warehouse.articles_raw.missing", table_id=table_id)
             return 0
         return int(table.num_rows)
 
