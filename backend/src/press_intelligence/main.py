@@ -6,6 +6,7 @@ from typing import AsyncIterator
 import httpx
 import structlog
 import uvicorn
+from tenacity import RetryError
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -129,6 +130,16 @@ def _register_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             code="upstream_unavailable",
             message="An upstream service is unavailable. Try again shortly.",
+            request=request,
+        )
+
+    @app.exception_handler(RetryError)
+    async def handle_retry_exhausted(request: Request, exc: RetryError) -> JSONResponse:
+        logger.warning("upstream.retries_exhausted", exc_info=exc)
+        return _error_response(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="upstream_unavailable",
+            message="An upstream service is unavailable after retries. Try again shortly.",
             request=request,
         )
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable, TypeVar
 
 import httpx
 import structlog
 from tenacity import (
-    AsyncRetrying,
     RetryCallState,
+    retry,
     retry_if_exception_type,
     retry_if_result,
     stop_after_attempt,
@@ -16,6 +16,8 @@ from tenacity import (
 logger = structlog.get_logger(__name__)
 
 RETRYABLE_STATUSES = frozenset({429, 502, 503, 504})
+
+T = TypeVar("T")
 
 
 def _wait_with_retry_after(
@@ -50,7 +52,6 @@ def _log_before_retry(service: str) -> Callable[[RetryCallState], None]:
         logger.warning(
             f"{service}.call.retrying",
             attempt=retry_state.attempt_number,
-            next_sleep=retry_state.next_action.sleep if retry_state.next_action else None,
             status_code=status_code,
             exception=str(exc) if exc else None,
         )
@@ -58,18 +59,17 @@ def _log_before_retry(service: str) -> Callable[[RetryCallState], None]:
     return _hook
 
 
-def retryable_http(
+def _should_retry_result(result: Any) -> bool:
+    return isinstance(result, httpx.Response) and result.status_code in RETRYABLE_STATUSES
+
+
+def retry_http(
     service: str,
     max_attempts: int = 5,
     initial: float = 0.5,
     cap: float = 10.0,
-) -> AsyncRetrying:
-    def _should_retry_result(result: Any) -> bool:
-        if isinstance(result, httpx.Response):
-            return result.status_code in RETRYABLE_STATUSES
-        return False
-
-    return AsyncRetrying(
+) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+    return retry(
         stop=stop_after_attempt(max_attempts),
         wait=_wait_with_retry_after(initial=initial, cap=cap),
         retry=(

@@ -6,7 +6,7 @@ import httpx
 import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
-from press_intelligence.clients._retry import retryable_http
+from press_intelligence.clients._retry import retry_http
 from press_intelligence.core.config import Settings
 
 logger = structlog.get_logger(__name__)
@@ -60,15 +60,15 @@ class AirflowClient:
 
     async def trigger_dag(self, dag_id: str, conf: dict[str, Any]) -> AirflowDagRun:
         client = self._shared_client()
-        retry = retryable_http("airflow")
-        response: httpx.Response | None = None
-        async for attempt in retry:
-            with attempt:
-                response = await client.post(
-                    f"{self._settings.airflow_base_url}/dags/{dag_id}/dagRuns",
-                    json={"conf": conf},
-                )
-        assert response is not None
+
+        @retry_http("airflow")
+        async def _call() -> httpx.Response:
+            return await client.post(
+                f"{self._settings.airflow_base_url}/dags/{dag_id}/dagRuns",
+                json={"conf": conf},
+            )
+
+        response = await _call()
 
         if response.status_code == 409:
             logger.info("airflow.trigger.duplicate", dag_id=dag_id)
@@ -84,15 +84,15 @@ class AirflowClient:
 
     async def dag_runs(self, dag_id: str, limit: int = 10) -> list[AirflowDagRun]:
         client = self._shared_client()
-        retry = retryable_http("airflow")
-        response: httpx.Response | None = None
-        async for attempt in retry:
-            with attempt:
-                response = await client.get(
-                    f"{self._settings.airflow_base_url}/dags/{dag_id}/dagRuns",
-                    params={"limit": limit, "order_by": "-start_date"},
-                )
-        assert response is not None
+
+        @retry_http("airflow")
+        async def _call() -> httpx.Response:
+            return await client.get(
+                f"{self._settings.airflow_base_url}/dags/{dag_id}/dagRuns",
+                params={"limit": limit, "order_by": "-start_date"},
+            )
+
+        response = await _call()
         response.raise_for_status()
         payload = response.json()
         return [

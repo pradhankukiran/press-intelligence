@@ -6,8 +6,9 @@ from datetime import date
 
 import httpx
 import structlog
+from tenacity import RetryError
 
-from press_intelligence.clients._retry import retryable_http
+from press_intelligence.clients._retry import retry_http
 from press_intelligence.core.config import Settings
 
 logger = structlog.get_logger(__name__)
@@ -33,7 +34,14 @@ class GuardianContentClient:
 
         async with httpx.AsyncClient(timeout=self._timeout()) as client:
             while True:
-                response = await self._fetch_page(client, start_date, end_date, page)
+                try:
+                    response = await self._fetch_page(client, start_date, end_date, page)
+                except RetryError as retry_exc:
+                    last = retry_exc.last_attempt.result()
+                    status_code = getattr(last, "status_code", "unknown")
+                    raise GuardianTransientError(
+                        f"Guardian returned {status_code} after retries"
+                    ) from retry_exc
                 if response.status_code in {401, 403}:
                     response.raise_for_status()
                 if response.status_code >= 400:
@@ -58,23 +66,25 @@ class GuardianContentClient:
         end_date: date,
         page: int,
     ) -> httpx.Response:
-        retry = retryable_http("guardian")
         started = time.perf_counter()
-        async for attempt in retry:
-            with attempt:
-                response = await client.get(
-                    f"{self._settings.guardian_base_url}/search",
-                    params={
-                        "api-key": self._settings.guardian_api_key,
-                        "from-date": start_date.isoformat(),
-                        "to-date": end_date.isoformat(),
-                        "page-size": 50,
-                        "show-tags": "keyword",
-                        "show-fields": "headline,trailText,byline,bodyText",
-                        "order-by": "newest",
-                        "page": page,
-                    },
-                )
+
+        @retry_http("guardian")
+        async def _call() -> httpx.Response:
+            return await client.get(
+                f"{self._settings.guardian_base_url}/search",
+                params={
+                    "api-key": self._settings.guardian_api_key,
+                    "from-date": start_date.isoformat(),
+                    "to-date": end_date.isoformat(),
+                    "page-size": 50,
+                    "show-tags": "keyword",
+                    "show-fields": "headline,trailText,byline,bodyText",
+                    "order-by": "newest",
+                    "page": page,
+                },
+            )
+
+        response = await _call()
         logger.info(
             "guardian.page.fetched",
             page=page,
