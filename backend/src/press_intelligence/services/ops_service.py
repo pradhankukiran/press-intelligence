@@ -68,14 +68,6 @@ class OpsService:
                     "id": self._settings.airflow_backfill_dag_id,
                     "status": "healthy" if airflow_status == "connected" else "degraded",
                 },
-                {
-                    "id": self._settings.airflow_transform_dag_id,
-                    "status": "healthy" if airflow_status == "connected" else "degraded",
-                },
-                {
-                    "id": self._settings.airflow_quality_dag_id,
-                    "status": "healthy" if airflow_status == "connected" else "degraded",
-                },
             ],
             "checks": [
                 {

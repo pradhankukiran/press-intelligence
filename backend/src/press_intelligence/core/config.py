@@ -37,10 +37,10 @@ class Settings(BaseSettings):
     airflow_password: str = "airflow"
     airflow_recent_dag_id: str = "guardian_ingest_recent"
     airflow_backfill_dag_id: str = "guardian_backfill_range"
-    airflow_transform_dag_id: str = "guardian_transform_reporting"
-    airflow_quality_dag_id: str = "guardian_data_quality"
-    airflow_timeout_seconds: float = 3.0
+    airflow_timeout_seconds: float = 15.0
+    airflow_health_timeout_seconds: float = 3.0
     mock_seed_date: str = "2026-03-12"
+    default_window_days: int = 12
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
 
