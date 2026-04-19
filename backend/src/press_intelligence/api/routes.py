@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from press_intelligence.core.dependencies import (
@@ -151,9 +151,10 @@ async def ops_runs(
 )
 async def trigger_backfill(
     request: BackfillRequest,
+    idempotency_key: str | None = Header(default=None, alias="X-Idempotency-Key"),
     ops_service: OpsService = Depends(get_ops_service),
 ) -> BackfillResponse:
-    data = await ops_service.trigger_backfill(request)
+    data = await ops_service.trigger_backfill(request, idempotency_key=idempotency_key)
     return BackfillResponse.model_validate(data)
 
 

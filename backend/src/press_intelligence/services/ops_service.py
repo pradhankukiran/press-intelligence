@@ -8,6 +8,7 @@ import structlog
 from press_intelligence.clients.airflow import AirflowClient
 from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.core.config import Settings
+from press_intelligence.core.idempotency import IdempotencyCache
 from press_intelligence.models.schemas import BackfillRequest
 from press_intelligence.services.mock_store import MockStore
 
@@ -21,11 +22,15 @@ class OpsService:
         airflow: AirflowClient,
         warehouse: BigQueryWarehouse,
         mock_store: MockStore,
+        idempotency_cache: IdempotencyCache | None = None,
     ) -> None:
         self._settings = settings
         self._airflow = airflow
         self._warehouse = warehouse
         self._mock_store = mock_store
+        self._idempotency_cache = (
+            idempotency_cache if idempotency_cache is not None else IdempotencyCache()
+        )
 
     async def health(self) -> dict[str, object]:
         warehouse_status = await self._warehouse.healthcheck()
@@ -91,9 +96,21 @@ class OpsService:
         )
         return {"runs": [self._serialize_pipeline_run(row) for row in rows]}
 
-    async def trigger_backfill(self, request: BackfillRequest) -> dict[str, object]:
+    async def trigger_backfill(
+        self,
+        request: BackfillRequest,
+        idempotency_key: str | None = None,
+    ) -> dict[str, object]:
+        if idempotency_key:
+            cached = self._idempotency_cache.get(idempotency_key)
+            if cached is not None:
+                logger.info("ops.backfill.idempotent_replay", key=idempotency_key)
+                return cached
         if self._settings.data_mode == "mock":
-            return self._mock_store.trigger_backfill(request)
+            result = self._mock_store.trigger_backfill(request)
+            if idempotency_key:
+                self._idempotency_cache.set(idempotency_key, result)
+            return result
         response = await self._airflow.trigger_dag(
             self._settings.airflow_backfill_dag_id,
             conf={
@@ -121,12 +138,15 @@ class OpsService:
                 }
             ]
         )
-        return {
+        result = {
             "run_id": response.dag_run_id,
             "dag_id": self._settings.airflow_backfill_dag_id,
             "status": self._normalize_state(response.state),
             "message": "Backfill queued in Airflow.",
         }
+        if idempotency_key:
+            self._idempotency_cache.set(idempotency_key, result)
+        return result
 
     async def backfill_status(self, run_id: str) -> dict[str, object] | None:
         if self._settings.data_mode == "mock":
