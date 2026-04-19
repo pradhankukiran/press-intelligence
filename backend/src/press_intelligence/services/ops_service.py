@@ -99,21 +99,13 @@ class OpsService:
     async def trigger_backfill(self, request: BackfillRequest) -> dict[str, object]:
         if self._settings.data_mode == "mock":
             return self._mock_store.trigger_backfill(request)
-        try:
-            response = await self._airflow.trigger_dag(
-                self._settings.airflow_backfill_dag_id,
-                conf={
-                    "start_date": request.start_date,
-                    "end_date": request.end_date,
-                },
-            )
-        except Exception:
-            return {
-                "run_id": "airflow-unavailable",
-                "dag_id": self._settings.airflow_backfill_dag_id,
-                "status": "failed",
-                "message": "Airflow is not available. Start the Airflow Docker services and retry.",
-            }
+        response = await self._airflow.trigger_dag(
+            self._settings.airflow_backfill_dag_id,
+            conf={
+                "start_date": request.start_date,
+                "end_date": request.end_date,
+            },
+        )
         await self._warehouse.upsert_pipeline_runs(
             [
                 {
@@ -151,6 +143,8 @@ class OpsService:
         return None
 
     async def _sync_pipeline_runs(self, limit: int) -> None:
+        import httpx
+
         pipeline_runs: list[dict[str, Any]] = []
         for dag_id, trigger in (
             (self._settings.airflow_recent_dag_id, "system"),
@@ -158,7 +152,12 @@ class OpsService:
         ):
             try:
                 response = await self._airflow.dag_runs(dag_id, limit=limit)
-            except Exception:
+            except httpx.HTTPError as exc:
+                logger.warning(
+                    "ops.sync.dag_runs.failed",
+                    dag_id=dag_id,
+                    exc_info=exc,
+                )
                 continue
             pipeline_runs.extend(
                 self._normalize_airflow_run(row, trigger)
