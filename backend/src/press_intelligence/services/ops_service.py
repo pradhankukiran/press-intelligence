@@ -10,6 +10,7 @@ from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.core.config import Settings
 from press_intelligence.core.idempotency import IdempotencyCache
 from press_intelligence.models.schemas import BackfillRequest
+from press_intelligence.services.alerts import AlertsNotifier
 from press_intelligence.services.mock_store import MockStore
 
 logger = structlog.get_logger(__name__)
@@ -23,6 +24,7 @@ class OpsService:
         warehouse: BigQueryWarehouse,
         mock_store: MockStore,
         idempotency_cache: IdempotencyCache | None = None,
+        alerts: AlertsNotifier | None = None,
     ) -> None:
         self._settings = settings
         self._airflow = airflow
@@ -31,6 +33,7 @@ class OpsService:
         self._idempotency_cache = (
             idempotency_cache if idempotency_cache is not None else IdempotencyCache()
         )
+        self._alerts = alerts if alerts is not None else AlertsNotifier(settings)
 
     async def health(self) -> dict[str, object]:
         warehouse_status = await self._warehouse.healthcheck()
@@ -183,6 +186,9 @@ class OpsService:
             )
         if pipeline_runs:
             await self._warehouse.upsert_pipeline_runs(pipeline_runs)
+            for run in pipeline_runs:
+                if run["status"] == "failed":
+                    await self._alerts.notify_failed_run(run)
 
     def _normalize_airflow_run(self, row: Any, trigger: str) -> dict[str, Any]:
         return {
