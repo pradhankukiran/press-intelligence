@@ -32,7 +32,7 @@ services:
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
     volumes:
       - ./backend/src:/app/src
-      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+      - ./secrets:/app/secrets:ro
     ports:
       - "8000:8000"
     depends_on:
@@ -72,7 +72,7 @@ services:
     volumes:
       - ./backend/airflow/dags:/opt/airflow/dags
       - ./backend/src:/opt/press-intelligence/backend/src
-      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+      - ./secrets:/app/secrets:ro
     depends_on:
       - postgres
 
@@ -98,7 +98,7 @@ services:
     volumes:
       - ./backend/airflow/dags:/opt/airflow/dags
       - ./backend/src:/opt/press-intelligence/backend/src
-      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+      - ./secrets:/app/secrets:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -127,7 +127,7 @@ services:
     volumes:
       - ./backend/airflow/dags:/opt/airflow/dags
       - ./backend/src:/opt/press-intelligence/backend/src
-      - ./secrets:/home/kiran/press-intelligence/secrets:ro
+      - ./secrets:/app/secrets:ro
     depends_on:
       airflow-init:
         condition: service_completed_successfully
