@@ -12,14 +12,32 @@ from press_intelligence.core.config import Settings
 
 logger = structlog.get_logger(__name__)
 
-MATERIALIZATIONS: tuple[str, ...] = (
-    "materializations/analytics/articles_latest.sql",
-    "materializations/analytics/article_tags.sql",
-    "materializations/analytics/daily_volume.sql",
-    "materializations/analytics/section_counts_daily.sql",
-    "materializations/analytics/section_daily.sql",
-    "materializations/analytics/tag_counts_daily.sql",
-    "materializations/analytics/content_freshness.sql",
+MATERIALIZATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("materializations/analytics/articles_latest.sql", ()),
+    (
+        "materializations/analytics/article_tags.sql",
+        ("materializations/analytics/articles_latest.sql",),
+    ),
+    (
+        "materializations/analytics/daily_volume.sql",
+        ("materializations/analytics/articles_latest.sql",),
+    ),
+    (
+        "materializations/analytics/section_counts_daily.sql",
+        ("materializations/analytics/articles_latest.sql",),
+    ),
+    (
+        "materializations/analytics/section_daily.sql",
+        ("materializations/analytics/section_counts_daily.sql",),
+    ),
+    (
+        "materializations/analytics/tag_counts_daily.sql",
+        ("materializations/analytics/article_tags.sql",),
+    ),
+    (
+        "materializations/analytics/content_freshness.sql",
+        ("materializations/analytics/articles_latest.sql",),
+    ),
 )
 
 
@@ -69,7 +87,26 @@ class GuardianPipelineService:
 
     async def run_transforms(self) -> dict[str, Any]:
         steps: list[dict[str, Any]] = []
-        for sql_path in MATERIALIZATIONS:
+        failed_paths: set[str] = set()
+
+        for sql_path, deps in MATERIALIZATIONS:
+            blocking = [dep for dep in deps if dep in failed_paths]
+            if blocking:
+                logger.warning(
+                    "pipeline.materialization.skipped",
+                    sql_path=sql_path,
+                    blocked_by=blocking,
+                )
+                steps.append(
+                    {
+                        "sql_path": sql_path,
+                        "status": "skipped",
+                        "blocked_by": blocking,
+                    }
+                )
+                failed_paths.add(sql_path)
+                continue
+
             started = time.perf_counter()
             try:
                 await self._warehouse.execute_sql(sql_path)
@@ -89,6 +126,7 @@ class GuardianPipelineService:
                         "error": str(exc),
                     }
                 )
+                failed_paths.add(sql_path)
                 continue
             duration_ms = round((time.perf_counter() - started) * 1000, 2)
             logger.info(
@@ -104,8 +142,8 @@ class GuardianPipelineService:
                 }
             )
 
-        failed = [step for step in steps if step["status"] == "failed"]
-        overall = "failed" if failed else "materialized"
+        any_failed = any(step["status"] == "failed" for step in steps)
+        overall = "failed" if any_failed else "materialized"
         return {
             "mode": "transform",
             "status": overall,
