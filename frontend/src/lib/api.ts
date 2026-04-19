@@ -63,6 +63,13 @@ const EMPTY_RUNS: RunsResponse = {
   runs: [],
 };
 
+export type ApiError = {
+  status: number;
+  code: string;
+  message: string;
+  requestId?: string;
+};
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -74,26 +81,35 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed for ${path}`);
+    const requestId = response.headers.get("X-Request-ID") ?? undefined;
+    let code = "http_error";
+    let message = `Request failed for ${path}`;
+    try {
+      const body = await response.json();
+      if (body && typeof body === "object") {
+        if (typeof body.code === "string") code = body.code;
+        if (typeof body.message === "string") message = body.message;
+      }
+    } catch {
+      // non-JSON body; fall through with defaults
+    }
+    const err: ApiError = {
+      status: response.status,
+      code,
+      message,
+      requestId,
+    };
+    throw err;
   }
 
   return (await response.json()) as T;
 }
 
-async function requestJsonOrFallback<T>(path: string, fallback: T, init?: RequestInit): Promise<T> {
-  try {
-    return await requestJson<T>(path, init);
-  } catch {
-    return fallback;
-  }
-}
-
 export async function fetchOverviewData(): Promise<DashboardData> {
   const [overview, opsStatus, runs] = await Promise.all([
-    requestJsonOrFallback<OverviewResponse>("/api/analytics/overview", EMPTY_OVERVIEW),
-    requestJsonOrFallback<OpsStatusResponse>("/api/ops/status", EMPTY_OPS_STATUS),
-    requestJsonOrFallback<RunsResponse>("/api/ops/runs?limit=8", EMPTY_RUNS),
+    requestJson<OverviewResponse>("/api/analytics/overview"),
+    requestJson<OpsStatusResponse>("/api/ops/status"),
+    requestJson<RunsResponse>("/api/ops/runs?limit=8"),
   ]);
 
   return {
@@ -108,13 +124,10 @@ export async function fetchOverviewData(): Promise<DashboardData> {
 
 export async function fetchAnalyticsData(): Promise<DashboardData> {
   const [sections, tags, publishing, overview] = await Promise.all([
-    requestJsonOrFallback<SectionsResponse>("/api/analytics/sections", EMPTY_SECTIONS),
-    requestJsonOrFallback<TagsResponse>("/api/analytics/tags?limit=8", EMPTY_TAGS),
-    requestJsonOrFallback<PublishingVolumeResponse>(
-      "/api/analytics/publishing-volume",
-      EMPTY_PUBLISHING,
-    ),
-    requestJsonOrFallback<OverviewResponse>("/api/analytics/overview", EMPTY_OVERVIEW),
+    requestJson<SectionsResponse>("/api/analytics/sections"),
+    requestJson<TagsResponse>("/api/analytics/tags?limit=8"),
+    requestJson<PublishingVolumeResponse>("/api/analytics/publishing-volume"),
+    requestJson<OverviewResponse>("/api/analytics/overview"),
   ]);
 
   return {
@@ -129,8 +142,8 @@ export async function fetchAnalyticsData(): Promise<DashboardData> {
 
 export async function fetchOperationsData(): Promise<DashboardData> {
   const [opsStatus, runs] = await Promise.all([
-    requestJsonOrFallback<OpsStatusResponse>("/api/ops/status", EMPTY_OPS_STATUS),
-    requestJsonOrFallback<RunsResponse>("/api/ops/runs?limit=8", EMPTY_RUNS),
+    requestJson<OpsStatusResponse>("/api/ops/status"),
+    requestJson<RunsResponse>("/api/ops/runs?limit=8"),
   ]);
 
   return {
