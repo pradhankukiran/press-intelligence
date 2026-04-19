@@ -26,6 +26,11 @@ class SectionPoint(BaseModel):
     technology: int = 0
 
 
+class SectionLeader(BaseModel):
+    section: str
+    count: int
+
+
 class TagPoint(BaseModel):
     tag: str
     count: int
@@ -51,18 +56,29 @@ class DataQualityCheck(BaseModel):
     detail: str
 
 
+class DagStatus(BaseModel):
+    id: str
+    status: Literal["healthy", "degraded"]
+
+
+class FreshnessPayload(BaseModel):
+    last_sync_at: str
+    watermark: str
+    lag: str
+
+
 class OverviewResponse(BaseModel):
     range: str
     kpis: list[KPI]
     daily_volume: list[TrendPoint]
-    freshness: dict[str, str]
-    top_sections: list[dict[str, str | int]]
+    freshness: FreshnessPayload
+    top_sections: list[SectionLeader]
 
 
 class SectionsResponse(BaseModel):
     range: str
     series: list[SectionPoint]
-    leaders: list[dict[str, str | int]]
+    leaders: list[SectionLeader]
 
 
 class TagsResponse(BaseModel):
@@ -82,7 +98,7 @@ class OpsStatusResponse(BaseModel):
     last_sync_at: str
     freshness_lag: str
     watermark: str
-    dags: list[dict[str, str]]
+    dags: list[DagStatus]
     checks: list[DataQualityCheck]
 
 
