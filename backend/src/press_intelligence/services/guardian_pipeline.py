@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -10,6 +11,16 @@ from press_intelligence.clients.guardian import GuardianContentClient
 from press_intelligence.core.config import Settings
 
 logger = structlog.get_logger(__name__)
+
+MATERIALIZATIONS: tuple[str, ...] = (
+    "materializations/analytics/articles_latest.sql",
+    "materializations/analytics/article_tags.sql",
+    "materializations/analytics/daily_volume.sql",
+    "materializations/analytics/section_counts_daily.sql",
+    "materializations/analytics/section_daily.sql",
+    "materializations/analytics/tag_counts_daily.sql",
+    "materializations/analytics/content_freshness.sql",
+)
 
 
 class GuardianPipelineService:
@@ -40,31 +51,48 @@ class GuardianPipelineService:
         return {"mode": "backfill", "start_date": start_date, "end_date": end_date, "inserted": total}
 
     async def run_transforms(self) -> dict[str, Any]:
-        materializations = [
-            "materializations/analytics/articles_latest.sql",
-            "materializations/analytics/article_tags.sql",
-            "materializations/analytics/daily_volume.sql",
-            "materializations/analytics/section_counts_daily.sql",
-            "materializations/analytics/section_daily.sql",
-            "materializations/analytics/tag_counts_daily.sql",
-            "materializations/analytics/content_freshness.sql",
-        ]
+        steps: list[dict[str, Any]] = []
+        for sql_path in MATERIALIZATIONS:
+            started = time.perf_counter()
+            try:
+                await self._warehouse.execute_sql(sql_path)
+            except Exception as exc:
+                duration_ms = round((time.perf_counter() - started) * 1000, 2)
+                logger.warning(
+                    "pipeline.materialization.failed",
+                    sql_path=sql_path,
+                    duration_ms=duration_ms,
+                    exc_info=exc,
+                )
+                steps.append(
+                    {
+                        "sql_path": sql_path,
+                        "status": "failed",
+                        "duration_ms": duration_ms,
+                        "error": str(exc),
+                    }
+                )
+                continue
+            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            logger.info(
+                "pipeline.materialization.executed",
+                sql_path=sql_path,
+                duration_ms=duration_ms,
+            )
+            steps.append(
+                {
+                    "sql_path": sql_path,
+                    "status": "ok",
+                    "duration_ms": duration_ms,
+                }
+            )
 
-        for sql_path in materializations:
-            await self._warehouse.execute_sql(sql_path)
-
+        failed = [step for step in steps if step["status"] == "failed"]
+        overall = "failed" if failed else "materialized"
         return {
             "mode": "transform",
-            "status": "materialized",
-            "tables": [
-                "analytics.articles_latest",
-                "analytics.article_tags",
-                "analytics.daily_volume",
-                "analytics.section_counts_daily",
-                "analytics.section_daily",
-                "analytics.tag_counts_daily",
-                "analytics.content_freshness",
-            ],
+            "status": overall,
+            "steps": steps,
         }
 
     async def run_quality_checks(self) -> dict[str, Any]:
