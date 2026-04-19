@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class KPI(BaseModel):
@@ -137,3 +137,27 @@ class ErrorEnvelope(BaseModel):
     message: str
     request_id: str | None = None
     details: dict[str, object] | None = None
+
+
+class ArticleSummary(BaseModel):
+    guardian_id: str
+    web_title: str
+    web_url: str | None = None
+    section_id: str | None = None
+    section_name: str | None = None
+    pillar_name: str | None = None
+    published_at: str
+    tags: list[str] = Field(default_factory=list)
+
+
+class ArticleDetail(ArticleSummary):
+    raw_payload: dict[str, object] | None = None
+
+
+class ArticleSearchResponse(BaseModel):
+    range: str
+    query: str | None = None
+    section: str | None = None
+    tag: str | None = None
+    total: int
+    articles: list[ArticleSummary]
