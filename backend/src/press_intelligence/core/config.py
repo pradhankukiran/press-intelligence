@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     airflow_quality_dag_id: str = "guardian_data_quality"
     airflow_timeout_seconds: float = 3.0
     mock_seed_date: str = "2026-03-12"
+    log_level: str = "INFO"
+    log_format: Literal["json", "console"] = "console"
 
 
 @lru_cache
