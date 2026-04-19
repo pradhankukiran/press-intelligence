@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -123,32 +124,44 @@ class BigQueryWarehouse:
         from google.cloud import bigquery
 
         client = self._ensure_client()
-        table_id = (
+        target_id = (
             f"{self._settings.google_cloud_project}."
             f"{self._settings.bigquery_dataset_ops}.pipeline_runs"
         )
-        table = client.get_table(table_id)
-        merged_rows = {
-            (
-                str(existing["dag_id"]),
-                str(existing["run_id"]),
-            ): self._normalize_pipeline_run_row(dict(existing.items()))
-            for existing in client.list_rows(table)
-        }
-        for row in rows:
-            merged_rows[(str(row["dag_id"]), str(row["run_id"]))] = self._normalize_pipeline_run_row(
-                dict(row)
-            )
+        target = client.get_table(target_id)
 
-        load_job = client.load_table_from_json(
-            list(merged_rows.values()),
-            table_id,
-            job_config=bigquery.LoadJobConfig(
-                schema=table.schema,
-                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-            ),
+        staging_name = f"pipeline_runs__stg_{uuid.uuid4().hex}"
+        staging_id = (
+            f"{self._settings.google_cloud_project}."
+            f"{self._settings.bigquery_dataset_ops}.{staging_name}"
         )
-        load_job.result()
+        normalized = [self._normalize_pipeline_run_row(dict(row)) for row in rows]
+        try:
+            load_job = client.load_table_from_json(
+                normalized,
+                staging_id,
+                job_config=bigquery.LoadJobConfig(
+                    schema=target.schema,
+                    write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+                ),
+            )
+            load_job.result()
+
+            merge_sql = self._render_sql("ops/merge_pipeline_runs.sql").format(
+                **self._identifier_params(),
+                staging_table=staging_name,
+            )
+            merge_job = client.query(merge_sql)
+            merge_job.result()
+        finally:
+            try:
+                client.delete_table(staging_id, not_found_ok=True)
+            except Exception as exc:
+                logger.warning(
+                    "warehouse.pipeline_runs.staging_cleanup_failed",
+                    staging_id=staging_id,
+                    exc_info=exc,
+                )
         return len(rows)
 
     def _ensure_base_resources_sync(self) -> None:
