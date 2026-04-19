@@ -54,9 +54,10 @@ const sectionStyles = [
   { key: "technology", label: "Technology", opacity: 0.22 },
 ] as const;
 
-const routes: Array<{ key: RouteKey; label: string; href: string }> = [
+const routes: Array<{ key: RouteKey | "articles"; label: string; href: string }> = [
   { key: "overview", label: "Overview", href: "/" },
   { key: "analytics", label: "Analytics", href: "/analytics" },
+  { key: "articles", label: "Articles", href: "/articles" },
   { key: "ops", label: "Operations", href: "/ops" },
 ];
 
