@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import date, timedelta, timezone
+from datetime import UTC, date, timedelta
 from datetime import datetime as _dt
-from typing import Any
 
 import structlog
 
@@ -169,7 +168,7 @@ class AnalyticsService:
         }
 
     def _resolve_window(self, from_date: str | None, to_date: str | None) -> tuple[str, str]:
-        today = _dt.now(timezone.utc).date()
+        today = _dt.now(UTC).date()
         days = max(self._settings.default_window_days - 1, 0)
         end = date.fromisoformat(to_date) if to_date else today
         start = date.fromisoformat(from_date) if from_date else end - timedelta(days=days)

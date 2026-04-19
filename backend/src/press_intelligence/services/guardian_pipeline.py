@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -31,7 +31,7 @@ class GuardianPipelineService:
 
     async def run_recent_ingest(self) -> dict[str, Any]:
         await self._warehouse.ensure_base_resources()
-        end = datetime.now(timezone.utc).date()
+        end = datetime.now(UTC).date()
         start = end - timedelta(days=1)
         rows = await self._guardian.fetch_range(start, end)
         enriched = [self._with_ingested_at(row) for row in rows]
@@ -128,4 +128,4 @@ class GuardianPipelineService:
         }
 
     def _with_ingested_at(self, row: dict[str, Any]) -> dict[str, Any]:
-        return {**row, "ingested_at": datetime.now(timezone.utc).isoformat()}
+        return {**row, "ingested_at": datetime.now(UTC).isoformat()}

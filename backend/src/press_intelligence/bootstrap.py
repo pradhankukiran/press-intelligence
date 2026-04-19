@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from press_intelligence.core.config import get_settings
 from press_intelligence.core.logging import configure_logging, get_logger
@@ -26,7 +26,7 @@ def main() -> None:
 
     configure_logging(get_settings())
 
-    end = datetime.now(timezone.utc).date()
+    end = datetime.now(UTC).date()
     start = end - timedelta(days=max(args.days - 1, 0))
     start_date = args.start_date or start.isoformat()
     end_date = args.end_date or end.isoformat()

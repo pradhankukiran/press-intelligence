@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -109,7 +109,7 @@ class OpsService:
                     "status": self._normalize_state(response.state),
                     "trigger": "manual",
                     "started_at": response.logical_date
-                    or datetime.now(timezone.utc).isoformat(),
+                    or datetime.now(UTC).isoformat(),
                     "finished_at": response.end_date,
                     "window": self._window_for_backfill_conf(
                         {

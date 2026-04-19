@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import httpx
-import structlog
 import uvicorn
-from tenacity import RetryError
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from tenacity import RetryError
 
 from press_intelligence.api.middleware import RequestContextMiddleware
 from press_intelligence.api.routes import router
