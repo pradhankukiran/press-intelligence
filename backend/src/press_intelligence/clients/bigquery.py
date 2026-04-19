@@ -12,6 +12,16 @@ from press_intelligence.core.config import Settings
 logger = structlog.get_logger(__name__)
 
 
+def _validate_article_row(row: dict[str, Any]) -> str | None:
+    if not isinstance(row, dict):
+        return "not_a_dict"
+    if not row.get("guardian_id"):
+        return "missing_guardian_id"
+    if not row.get("published_at"):
+        return "missing_published_at"
+    return None
+
+
 class BigQueryWarehouse:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -56,11 +66,31 @@ class BigQueryWarehouse:
         rendered = self._render_sql(sql_path).format(**self._identifier_params())
         await asyncio.to_thread(self._run_statement, rendered)
 
-    async def load_articles(self, rows: list[dict[str, Any]]) -> int:
+    async def load_articles(self, rows: list[dict[str, Any]]) -> dict[str, int]:
         await self.ensure_base_resources()
-        if not rows:
-            return 0
-        return await asyncio.to_thread(self._load_articles_sync, rows)
+        valid, rejected = self._partition_articles(rows)
+        if not valid:
+            return {"loaded": 0, "rejected": len(rejected)}
+        loaded = await asyncio.to_thread(self._load_articles_sync, valid)
+        return {"loaded": loaded, "rejected": len(rejected)}
+
+    def _partition_articles(
+        self, rows: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        valid: list[dict[str, Any]] = []
+        rejected: list[dict[str, Any]] = []
+        for row in rows:
+            reason = _validate_article_row(row)
+            if reason is None:
+                valid.append(row)
+                continue
+            rejected.append(row)
+            logger.warning(
+                "warehouse.articles.rejected",
+                reason=reason,
+                guardian_id=row.get("guardian_id"),
+            )
+        return valid, rejected
 
     async def ensure_base_resources(self) -> None:
         if self._resources_ensured:
