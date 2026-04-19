@@ -114,3 +114,10 @@ class BackfillResponse(BaseModel):
     dag_id: str
     status: Literal["queued", "running", "success", "failed"]
     message: str
+
+
+class ErrorEnvelope(BaseModel):
+    code: str
+    message: str
+    request_id: str | None = None
+    details: dict[str, object] | None = None
