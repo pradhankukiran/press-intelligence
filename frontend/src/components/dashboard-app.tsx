@@ -21,16 +21,27 @@ import type {
 
 type RouteKey = "overview" | "analytics" | "ops";
 
+const STATUS_OK =
+  "border-[color:var(--status-ok)] bg-[color:var(--status-ok-soft)] text-[color:var(--status-ok)]";
+const STATUS_WARN =
+  "border-[color:var(--status-warn)] bg-[color:var(--status-warn-soft)] text-[color:var(--status-warn)]";
+const STATUS_BAD =
+  "border-[color:var(--status-bad)] bg-[color:var(--status-bad-soft)] text-[color:var(--status-bad)]";
+const STATUS_NEUTRAL =
+  "border-[color:var(--status-neutral)] bg-[color:var(--status-neutral-soft)] text-[color:var(--status-neutral)]";
+
 const statusTone: Record<string, string> = {
-  healthy: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  idle: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  pass: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  warn: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  fail: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  queued: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  running: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  success: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
-  failed: "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-black",
+  healthy: STATUS_OK,
+  pass: STATUS_OK,
+  success: STATUS_OK,
+  warn: STATUS_WARN,
+  queued: STATUS_WARN,
+  running: STATUS_WARN,
+  scheduled: STATUS_WARN,
+  fail: STATUS_BAD,
+  failed: STATUS_BAD,
+  degraded: STATUS_BAD,
+  idle: STATUS_NEUTRAL,
 };
 
 const sectionStyles = [
