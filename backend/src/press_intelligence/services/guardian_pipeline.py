@@ -50,7 +50,19 @@ class GuardianPipelineService:
     async def run_recent_ingest(self) -> dict[str, Any]:
         await self._warehouse.ensure_base_resources()
         end = datetime.now(UTC).date()
-        start = end - timedelta(days=1)
+        watermark = await self._warehouse.latest_ingested_at()
+        if watermark is not None:
+            start = watermark.date()
+            watermark_source = "warehouse"
+        else:
+            start = end - timedelta(days=1)
+            watermark_source = "default_24h"
+        logger.info(
+            "pipeline.recent.window",
+            start=start.isoformat(),
+            end=end.isoformat(),
+            watermark_source=watermark_source,
+        )
         rows = await self._guardian.fetch_range(start, end)
         enriched = [self._with_ingested_at(row) for row in rows]
         result = await self._warehouse.load_articles(enriched)
@@ -58,6 +70,7 @@ class GuardianPipelineService:
             "mode": "recent",
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
+            "watermark_source": watermark_source,
             "loaded": result["loaded"],
             "rejected": result["rejected"],
         }
