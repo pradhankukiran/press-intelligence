@@ -35,20 +35,37 @@ class GuardianPipelineService:
         start = end - timedelta(days=1)
         rows = await self._guardian.fetch_range(start, end)
         enriched = [self._with_ingested_at(row) for row in rows]
-        inserted = await self._warehouse.load_articles(enriched)
-        return {"mode": "recent", "start_date": start.isoformat(), "end_date": end.isoformat(), "inserted": inserted}
+        result = await self._warehouse.load_articles(enriched)
+        return {
+            "mode": "recent",
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "loaded": result["loaded"],
+            "rejected": result["rejected"],
+        }
 
     async def run_backfill(self, start_date: str, end_date: str) -> dict[str, Any]:
         await self._warehouse.ensure_base_resources()
         start = date.fromisoformat(start_date)
         end = date.fromisoformat(end_date)
-        total = 0
+        loaded = 0
+        rejected = 0
         cursor = start
         while cursor <= end:
             rows = await self._guardian.fetch_range(cursor, cursor)
-            total += await self._warehouse.load_articles([self._with_ingested_at(row) for row in rows])
+            result = await self._warehouse.load_articles(
+                [self._with_ingested_at(row) for row in rows]
+            )
+            loaded += result["loaded"]
+            rejected += result["rejected"]
             cursor += timedelta(days=1)
-        return {"mode": "backfill", "start_date": start_date, "end_date": end_date, "inserted": total}
+        return {
+            "mode": "backfill",
+            "start_date": start_date,
+            "end_date": end_date,
+            "loaded": loaded,
+            "rejected": rejected,
+        }
 
     async def run_transforms(self) -> dict[str, Any]:
         steps: list[dict[str, Any]] = []
