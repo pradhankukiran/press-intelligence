@@ -4,7 +4,11 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+import structlog
+
 from press_intelligence.core.config import Settings
+
+logger = structlog.get_logger(__name__)
 
 
 class BigQueryWarehouse:

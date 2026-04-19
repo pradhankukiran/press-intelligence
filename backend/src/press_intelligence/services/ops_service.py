@@ -3,11 +3,15 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+import structlog
+
 from press_intelligence.clients.airflow import AirflowClient
 from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.core.config import Settings
 from press_intelligence.models.schemas import BackfillRequest
 from press_intelligence.services.mock_store import MockStore
+
+logger = structlog.get_logger(__name__)
 
 
 class OpsService:

@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import structlog
 
 from press_intelligence.core.config import Settings
+
+logger = structlog.get_logger(__name__)
 
 
 class AirflowClient:

@@ -4,8 +4,11 @@ from collections.abc import Iterable
 from datetime import date
 
 import httpx
+import structlog
 
 from press_intelligence.core.config import Settings
+
+logger = structlog.get_logger(__name__)
 
 
 class GuardianContentClient:

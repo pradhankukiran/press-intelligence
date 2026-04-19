@@ -5,7 +5,11 @@ from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
+import structlog
+
 from press_intelligence.models.schemas import BackfillRequest
+
+logger = structlog.get_logger(__name__)
 
 
 class MockStore:

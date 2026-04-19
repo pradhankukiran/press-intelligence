@@ -3,9 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+import structlog
+
 from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.clients.guardian import GuardianContentClient
 from press_intelligence.core.config import Settings
+
+logger = structlog.get_logger(__name__)
 
 
 class GuardianPipelineService:

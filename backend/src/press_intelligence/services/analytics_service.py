@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+import structlog
+
 from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.core.config import Settings
 from press_intelligence.services.mock_store import MockStore
+
+logger = structlog.get_logger(__name__)
 
 
 class AnalyticsService:
