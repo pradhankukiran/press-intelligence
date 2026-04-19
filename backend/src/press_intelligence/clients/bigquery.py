@@ -62,10 +62,15 @@ class BigQueryWarehouse:
         params = self._build_query_params(scalars)
         return await asyncio.to_thread(self._run_query, rendered, params)
 
-    async def execute_sql(self, sql_path: str) -> None:
+    async def execute_sql(
+        self,
+        sql_path: str,
+        scalars: dict[str, Any] | None = None,
+    ) -> None:
         await self.ensure_base_resources()
         rendered = self._render_sql(sql_path).format(**self._identifier_params())
-        await asyncio.to_thread(self._run_statement, rendered)
+        params = self._build_query_params(scalars)
+        await asyncio.to_thread(self._run_statement, rendered, params)
 
     async def load_articles(self, rows: list[dict[str, Any]]) -> dict[str, int]:
         await self.ensure_base_resources()
@@ -132,9 +137,12 @@ class BigQueryWarehouse:
         results = query_job.result()
         return [dict(row.items()) for row in results]
 
-    def _run_statement(self, sql: str) -> None:
+    def _run_statement(self, sql: str, params: list[Any] | None = None) -> None:
+        from google.cloud import bigquery
+
         client = self._ensure_client()
-        query_job = client.query(sql)
+        job_config = bigquery.QueryJobConfig(query_parameters=params or [])
+        query_job = client.query(sql, job_config=job_config)
         query_job.result()
 
     def _load_articles_sync(self, rows: list[dict[str, Any]]) -> int:

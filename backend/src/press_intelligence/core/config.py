@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     airflow_health_timeout_seconds: float = 3.0
     mock_seed_date: str = "2026-03-12"
     default_window_days: int = 12
+    quality_missing_section_threshold: int = 0
+    quality_missing_published_at_threshold: int = 0
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
 

@@ -166,6 +166,10 @@ class GuardianPipelineService:
     async def run_quality_checks(self) -> dict[str, Any]:
         await self._warehouse.execute_sql(
             "materializations/ops/data_quality_results.sql",
+            scalars={
+                "missing_section_threshold": self._settings.quality_missing_section_threshold,
+                "missing_published_at_threshold": self._settings.quality_missing_published_at_threshold,
+            },
         )
         checks = await self._warehouse.query_from_sql("ops/data_quality.sql")
         return {

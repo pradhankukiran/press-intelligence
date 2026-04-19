@@ -3,9 +3,9 @@ SELECT
   'Missing section names' AS check_name,
   CURRENT_DATE() AS check_date,
   'warning' AS severity,
-  IF(COUNTIF(section_name IS NULL OR section_name = '') = 0, 'pass', 'warn') AS status,
+  IF(COUNTIF(section_name IS NULL OR section_name = '') <= @missing_section_threshold, 'pass', 'warn') AS status,
   CAST(COUNTIF(section_name IS NULL OR section_name = '') AS STRING) AS observed_value,
-  '0' AS threshold,
+  CAST(@missing_section_threshold AS STRING) AS threshold,
   TO_JSON(STRUCT('Section name should always be populated.' AS detail)) AS details_json,
   CURRENT_TIMESTAMP() AS created_at
 FROM `{google_cloud_project}.{bigquery_dataset_analytics}.articles_latest`
@@ -14,9 +14,9 @@ SELECT
   'Missing publication date' AS check_name,
   CURRENT_DATE() AS check_date,
   'warning' AS severity,
-  IF(COUNTIF(published_at IS NULL) = 0, 'pass', 'warn') AS status,
+  IF(COUNTIF(published_at IS NULL) <= @missing_published_at_threshold, 'pass', 'warn') AS status,
   CAST(COUNTIF(published_at IS NULL) AS STRING) AS observed_value,
-  '0' AS threshold,
+  CAST(@missing_published_at_threshold AS STRING) AS threshold,
   TO_JSON(STRUCT('Published timestamp should always be available.' AS detail)) AS details_json,
   CURRENT_TIMESTAMP() AS created_at
 FROM `{google_cloud_project}.{bigquery_dataset_analytics}.articles_latest`;
