@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,9 @@ class BigQueryWarehouse:
 
     async def raw_article_count(self) -> int:
         return await asyncio.to_thread(self._raw_article_count_sync)
+
+    async def latest_ingested_at(self) -> datetime | None:
+        return await asyncio.to_thread(self._latest_ingested_at_sync)
 
     async def upsert_pipeline_runs(self, rows: list[dict[str, Any]]) -> int:
         await self.ensure_base_resources()
@@ -299,6 +303,27 @@ class BigQueryWarehouse:
             logger.warning("warehouse.articles_raw.missing", table_id=table_id)
             return 0
         return int(table.num_rows)
+
+    def _latest_ingested_at_sync(self) -> datetime | None:
+        from google.api_core.exceptions import NotFound
+
+        client = self._ensure_client()
+        table_id = (
+            f"{self._settings.google_cloud_project}."
+            f"{self._settings.bigquery_dataset_raw}.articles_raw"
+        )
+        sql = f"SELECT MAX(ingested_at) AS latest FROM `{table_id}`"
+        try:
+            rows = list(client.query(sql).result())
+        except NotFound:
+            logger.warning("warehouse.articles_raw.missing", table_id=table_id)
+            return None
+        if not rows:
+            return None
+        latest = rows[0].get("latest")
+        if isinstance(latest, datetime):
+            return latest
+        return None
 
     def _render_sql(self, relative_path: str) -> str:
         base = Path(__file__).resolve().parents[1] / "sql"
