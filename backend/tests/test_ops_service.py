@@ -1,5 +1,6 @@
 import asyncio
 
+from press_intelligence.clients.airflow import AirflowDagRun
 from press_intelligence.core.config import Settings
 from press_intelligence.models.schemas import BackfillRequest
 from press_intelligence.services.mock_store import MockStore
@@ -31,43 +32,39 @@ class FakeWarehouse:
 
 
 class FakeAirflow:
-    async def dag_runs(self, dag_id: str, limit: int = 10) -> dict[str, object]:
+    async def dag_runs(self, dag_id: str, limit: int = 10) -> list[AirflowDagRun]:
         if dag_id == "guardian_ingest_recent":
-            return {
-                "dag_runs": [
-                    {
-                        "dag_run_id": "scheduled__2026-03-12T18:00:00+00:00",
-                        "dag_id": dag_id,
-                        "state": "success",
-                        "start_date": "2026-03-12T18:00:05+00:00",
-                        "end_date": "2026-03-12T18:01:00+00:00",
-                        "logical_date": "2026-03-12T18:00:00+00:00",
-                        "conf": {},
-                    }
-                ]
-            }
-        return {
-            "dag_runs": [
-                {
-                    "dag_run_id": "manual__2026-03-12T19:41:25.350569+00:00",
-                    "dag_id": dag_id,
-                    "state": "running",
-                    "start_date": "2026-03-12T19:41:30+00:00",
-                    "end_date": None,
-                    "logical_date": "2026-03-12T19:41:25.350569+00:00",
-                    "conf": {"start_date": "2026-03-01", "end_date": "2026-03-03"},
-                }
+            return [
+                AirflowDagRun(
+                    dag_run_id="scheduled__2026-03-12T18:00:00+00:00",
+                    dag_id=dag_id,
+                    state="success",
+                    start_date="2026-03-12T18:00:05+00:00",
+                    end_date="2026-03-12T18:01:00+00:00",
+                    logical_date="2026-03-12T18:00:00+00:00",
+                    conf={},
+                )
             ]
-        }
+        return [
+            AirflowDagRun(
+                dag_run_id="manual__2026-03-12T19:41:25.350569+00:00",
+                dag_id=dag_id,
+                state="running",
+                start_date="2026-03-12T19:41:30+00:00",
+                end_date=None,
+                logical_date="2026-03-12T19:41:25.350569+00:00",
+                conf={"start_date": "2026-03-01", "end_date": "2026-03-03"},
+            )
+        ]
 
-    async def trigger_dag(self, dag_id: str, conf: dict[str, object]) -> dict[str, object]:
-        return {
-            "dag_run_id": "manual__queued_1234",
-            "dag_id": dag_id,
-            "state": "queued",
-            "logical_date": "2026-03-12T20:10:00+00:00",
-            "conf": conf,
-        }
+    async def trigger_dag(self, dag_id: str, conf: dict[str, object]) -> AirflowDagRun:
+        return AirflowDagRun(
+            dag_run_id="manual__queued_1234",
+            dag_id=dag_id,
+            state="queued",
+            logical_date="2026-03-12T20:10:00+00:00",
+            conf=conf,
+        )
 
 
 def build_service() -> tuple[OpsService, FakeWarehouse]:

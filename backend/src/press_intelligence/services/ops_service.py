@@ -104,12 +104,13 @@ class OpsService:
         await self._warehouse.upsert_pipeline_runs(
             [
                 {
-                    "run_id": response["dag_run_id"],
+                    "run_id": response.dag_run_id,
                     "dag_id": self._settings.airflow_backfill_dag_id,
-                    "status": self._normalize_state(response.get("state")),
+                    "status": self._normalize_state(response.state),
                     "trigger": "manual",
-                    "started_at": response.get("logical_date") or datetime.now(timezone.utc).isoformat(),
-                    "finished_at": response.get("end_date"),
+                    "started_at": response.logical_date
+                    or datetime.now(timezone.utc).isoformat(),
+                    "finished_at": response.end_date,
                     "window": self._window_for_backfill_conf(
                         {
                             "start_date": request.start_date,
@@ -121,9 +122,9 @@ class OpsService:
             ]
         )
         return {
-            "run_id": response["dag_run_id"],
+            "run_id": response.dag_run_id,
             "dag_id": self._settings.airflow_backfill_dag_id,
-            "status": response["state"],
+            "status": self._normalize_state(response.state),
             "message": "Backfill queued in Airflow.",
         }
 
@@ -149,7 +150,7 @@ class OpsService:
             (self._settings.airflow_backfill_dag_id, "manual"),
         ):
             try:
-                response = await self._airflow.dag_runs(dag_id, limit=limit)
+                runs = await self._airflow.dag_runs(dag_id, limit=limit)
             except httpx.HTTPError as exc:
                 logger.warning(
                     "ops.sync.dag_runs.failed",
@@ -158,27 +159,26 @@ class OpsService:
                 )
                 continue
             pipeline_runs.extend(
-                self._normalize_airflow_run(row, trigger)
-                for row in response.get("dag_runs", [])
+                self._normalize_airflow_run(row, trigger) for row in runs
             )
         if pipeline_runs:
             await self._warehouse.upsert_pipeline_runs(pipeline_runs)
 
-    def _normalize_airflow_run(self, row: dict[str, Any], trigger: str) -> dict[str, Any]:
+    def _normalize_airflow_run(self, row: Any, trigger: str) -> dict[str, Any]:
         return {
-            "run_id": row["dag_run_id"],
-            "dag_id": row["dag_id"],
-            "status": self._normalize_state(row.get("state")),
+            "run_id": row.dag_run_id,
+            "dag_id": row.dag_id,
+            "status": self._normalize_state(row.state),
             "trigger": trigger,
-            "started_at": row.get("start_date") or row.get("logical_date"),
-            "finished_at": row.get("end_date"),
+            "started_at": row.start_date or row.logical_date,
+            "finished_at": row.end_date,
             "window": self._window_for_run(row, trigger),
             "error_summary": None,
         }
 
-    def _window_for_run(self, row: dict[str, Any], trigger: str) -> str:
+    def _window_for_run(self, row: Any, trigger: str) -> str:
         if trigger == "manual":
-            return self._window_for_backfill_conf(row.get("conf"))
+            return self._window_for_backfill_conf(row.conf)
         return "recent ingest"
 
     def _window_for_backfill_conf(self, conf: Any) -> str:

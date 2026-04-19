@@ -16,7 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from press_intelligence.api.middleware import RequestContextMiddleware
 from press_intelligence.api.routes import router
 from press_intelligence.core.config import Settings, get_settings
-from press_intelligence.core.dependencies import get_bigquery_warehouse
+from press_intelligence.core.dependencies import get_airflow_client, get_bigquery_warehouse
 from press_intelligence.core.logging import configure_logging, get_logger
 from press_intelligence.models.schemas import ErrorEnvelope
 
@@ -57,6 +57,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        try:
+            await get_airflow_client().aclose()
+        except Exception as exc:
+            logger.warning("airflow.client.close_failed", exc_info=exc)
         logger.info("app.shutdown")
 
 
