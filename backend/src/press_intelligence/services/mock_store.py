@@ -18,6 +18,7 @@ class MockStore:
         self._data_dir = Path(__file__).resolve().parents[1] / "mock_data"
         self._runs = self._load_json("runs.json")
         self._status = self._load_json("status.json")
+        self._articles = self._load_json("articles.json")
 
     def overview(self) -> dict[str, object]:
         return self._load_json("overview.json")
@@ -69,6 +70,54 @@ class MockStore:
             if run["run_id"] == run_id:
                 return deepcopy(run)
         return None
+
+    def search_articles(
+        self,
+        *,
+        query: str | None,
+        section: str | None,
+        tag: str | None,
+        limit: int,
+        offset: int,
+    ) -> dict[str, object]:
+        matched = [article for article in self._articles if self._article_matches(
+            article, query=query, section=section, tag=tag,
+        )]
+        page = [deepcopy(a) for a in matched[offset : offset + limit]]
+        return {
+            "range": f"Seed window around {self._seed_date}",
+            "query": query,
+            "section": section,
+            "tag": tag,
+            "total": len(matched),
+            "articles": page,
+        }
+
+    def get_article(self, guardian_id: str) -> dict[str, object] | None:
+        for article in self._articles:
+            if article.get("guardian_id") == guardian_id:
+                detail = deepcopy(article)
+                detail["raw_payload"] = None
+                return detail
+        return None
+
+    def _article_matches(
+        self,
+        article: dict[str, object],
+        *,
+        query: str | None,
+        section: str | None,
+        tag: str | None,
+    ) -> bool:
+        if section is not None and article.get("section_name") != section:
+            return False
+        if tag is not None and tag not in (article.get("tags") or []):
+            return False
+        if query is not None:
+            title = str(article.get("web_title") or "").lower()
+            if query.lower() not in title:
+                return False
+        return True
 
     def _load_json(self, filename: str) -> dict[str, object] | list[dict[str, object]]:
         return json.loads((self._data_dir / filename).read_text(encoding="utf-8"))

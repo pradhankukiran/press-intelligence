@@ -1,0 +1,82 @@
+[
+  {
+    "guardian_id": "world/2026/mar/12/climate-summit-opens",
+    "web_title": "Climate summit opens with record commitments",
+    "web_url": "https://www.theguardian.com/world/2026/mar/12/climate-summit-opens",
+    "section_id": "world",
+    "section_name": "world",
+    "pillar_name": "News",
+    "published_at": "2026-03-12T08:15:00Z",
+    "tags": ["environment", "climate", "summits"]
+  },
+  {
+    "guardian_id": "politics/2026/mar/12/budget-preview",
+    "web_title": "Budget preview: chancellor walks narrow fiscal path",
+    "web_url": "https://www.theguardian.com/politics/2026/mar/12/budget-preview",
+    "section_id": "politics",
+    "section_name": "politics",
+    "pillar_name": "News",
+    "published_at": "2026-03-12T09:02:00Z",
+    "tags": ["budget", "chancellor", "politics"]
+  },
+  {
+    "guardian_id": "business/2026/mar/11/markets-close",
+    "web_title": "Markets close lower as energy stocks slip",
+    "web_url": "https://www.theguardian.com/business/2026/mar/11/markets-close",
+    "section_id": "business",
+    "section_name": "business",
+    "pillar_name": "News",
+    "published_at": "2026-03-11T17:30:00Z",
+    "tags": ["markets", "economy", "business"]
+  },
+  {
+    "guardian_id": "culture/2026/mar/11/oscars-review",
+    "web_title": "Oscars 2026: the best and worst moments",
+    "web_url": "https://www.theguardian.com/culture/2026/mar/11/oscars-review",
+    "section_id": "culture",
+    "section_name": "culture",
+    "pillar_name": "Arts",
+    "published_at": "2026-03-11T14:00:00Z",
+    "tags": ["oscars", "film", "awards"]
+  },
+  {
+    "guardian_id": "technology/2026/mar/10/ai-regulation",
+    "web_title": "EU finalises sweeping new rules on AI",
+    "web_url": "https://www.theguardian.com/technology/2026/mar/10/ai-regulation",
+    "section_id": "technology",
+    "section_name": "technology",
+    "pillar_name": "News",
+    "published_at": "2026-03-10T12:45:00Z",
+    "tags": ["ai", "regulation", "eu", "technology"]
+  },
+  {
+    "guardian_id": "environment/2026/mar/10/ocean-heat",
+    "web_title": "Ocean heat reaches new high, scientists warn",
+    "web_url": "https://www.theguardian.com/environment/2026/mar/10/ocean-heat",
+    "section_id": "environment",
+    "section_name": "environment",
+    "pillar_name": "News",
+    "published_at": "2026-03-10T06:00:00Z",
+    "tags": ["climate", "oceans", "environment", "science"]
+  },
+  {
+    "guardian_id": "sport/2026/mar/09/football-transfer",
+    "web_title": "Shock summer transfer rumour lights up the league",
+    "web_url": "https://www.theguardian.com/sport/2026/mar/09/football-transfer",
+    "section_id": "sport",
+    "section_name": "sport",
+    "pillar_name": "Sport",
+    "published_at": "2026-03-09T19:20:00Z",
+    "tags": ["football", "transfers", "premier-league"]
+  },
+  {
+    "guardian_id": "opinion/2026/mar/09/housing-editorial",
+    "web_title": "Editorial: the housing crisis needs more than tweaks",
+    "web_url": "https://www.theguardian.com/commentisfree/2026/mar/09/housing-editorial",
+    "section_id": "commentisfree",
+    "section_name": "opinion",
+    "pillar_name": "Opinion",
+    "published_at": "2026-03-09T11:00:00Z",
+    "tags": ["housing", "editorial", "policy"]
+  }
+]
