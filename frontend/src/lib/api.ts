@@ -108,9 +108,20 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchOverviewData(): Promise<DashboardData> {
+export type DateRange = { fromDate?: string; toDate?: string };
+
+function dateRangeQuery(range: DateRange | undefined): string {
+  const params = new URLSearchParams();
+  if (range?.fromDate) params.set("from_date", range.fromDate);
+  if (range?.toDate) params.set("to_date", range.toDate);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function fetchOverviewData(range?: DateRange): Promise<DashboardData> {
+  const q = dateRangeQuery(range);
   const [overview, opsStatus, runs] = await Promise.all([
-    requestJson<OverviewResponse>("/api/analytics/overview"),
+    requestJson<OverviewResponse>(`/api/analytics/overview${q}`),
     requestJson<OpsStatusResponse>("/api/ops/status"),
     requestJson<RunsResponse>("/api/ops/runs?limit=8"),
   ]);
@@ -125,12 +136,19 @@ export async function fetchOverviewData(): Promise<DashboardData> {
   };
 }
 
-export async function fetchAnalyticsData(): Promise<DashboardData> {
+export async function fetchAnalyticsData(range?: DateRange): Promise<DashboardData> {
+  const params = new URLSearchParams();
+  if (range?.fromDate) params.set("from_date", range.fromDate);
+  if (range?.toDate) params.set("to_date", range.toDate);
+  const q = params.toString() ? `&${params.toString()}` : "";
+
   const [sections, tags, publishing, overview] = await Promise.all([
-    requestJson<SectionsResponse>("/api/analytics/sections"),
-    requestJson<TagsResponse>("/api/analytics/tags?limit=8"),
-    requestJson<PublishingVolumeResponse>("/api/analytics/publishing-volume"),
-    requestJson<OverviewResponse>("/api/analytics/overview"),
+    requestJson<SectionsResponse>(`/api/analytics/sections${dateRangeQuery(range)}`),
+    requestJson<TagsResponse>(`/api/analytics/tags?limit=8${q}`),
+    requestJson<PublishingVolumeResponse>(
+      `/api/analytics/publishing-volume${dateRangeQuery(range)}`,
+    ),
+    requestJson<OverviewResponse>(`/api/analytics/overview${dateRangeQuery(range)}`),
   ]);
 
   return {
