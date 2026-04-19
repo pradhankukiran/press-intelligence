@@ -2,6 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, ReactNode, startTransition, useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import {
   ApiError,
@@ -762,38 +773,39 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
     return <EmptyChartState label="No publishing volume available for the selected range." />;
   }
 
-  const height = 280;
-  const width = 720;
-  const padding = 28;
-  const values = points.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, 1);
-
-  const path = points
-    .map((point, index) => {
-      const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2);
-      const y = height - padding - ((point.value - min) / span) * (height - padding * 2);
-      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-
   return (
     <div className="grid gap-4">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
-        <g className="chart-grid">
-          {[0, 0.25, 0.5, 0.75, 1].map((step) => {
-            const y = padding + step * (height - padding * 2);
-            return <line key={step} x1={padding} x2={width - padding} y1={y} y2={y} />;
-          })}
-        </g>
-        <path d={path} fill="none" stroke="var(--accent)" strokeWidth="3" />
-        {points.map((point, index) => {
-          const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2);
-          const y = height - padding - ((point.value - min) / span) * (height - padding * 2);
-          return <circle key={point.date} cx={x} cy={y} r="4" fill="var(--accent)" />;
-        })}
-      </svg>
+      <div className="h-72 w-full border border-black bg-[color:var(--background)] p-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={points} margin={{ top: 12, right: 16, bottom: 8, left: 0 }}>
+            <CartesianGrid stroke="rgba(0,0,0,0.14)" strokeDasharray="0" vertical={false} />
+            <XAxis
+              dataKey="date"
+              stroke="#000000"
+              tick={{ fontSize: 11, fill: "#000000" }}
+              tickFormatter={(value: string) => value.slice(5)}
+            />
+            <YAxis stroke="#000000" tick={{ fontSize: 11, fill: "#000000" }} width={36} />
+            <Tooltip
+              contentStyle={{
+                background: "#ffffff",
+                border: "1px solid #000000",
+                borderRadius: 0,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "#000000" }}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="var(--accent)"
+              strokeWidth={3}
+              dot={{ fill: "var(--accent)", r: 4 }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       <div className="grid grid-cols-3 gap-3 text-xs text-black/70 sm:grid-cols-6">
         {points.slice(-6).map((point) => (
           <div key={point.date} className="border border-black bg-[color:var(--background)] px-3 py-2">
@@ -838,41 +850,48 @@ function SectionCompositionChart({ series }: { series: SectionPoint[] }) {
     return <EmptyChartState label="No section mix data available yet." />;
   }
 
+  const chartData = series.slice(-10).map((point) => ({
+    date: point.date,
+    ...sectionStyles.reduce<Record<string, number>>((acc, section) => {
+      acc[section.key] = point[section.key];
+      return acc;
+    }, {}),
+  }));
+
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3">
-        {series.slice(-6).map((point) => {
-          const total =
-            point.world +
-            point.politics +
-            point.business +
-            point.culture +
-            point.climate +
-            point.technology;
-
-          return (
-            <div key={point.date} className="grid gap-2">
-              <div className="flex items-center justify-between text-sm text-black">
-                <span>{point.date}</span>
-                <span className="text-black/70">{total} stories</span>
-              </div>
-              <div className="flex h-4 border border-black bg-[color:var(--background)]">
-                {sectionStyles.map((section) => {
-                  const value = point[section.key];
-                  return (
-                    <div
-                      key={section.key}
-                      style={{
-                        width: `${total > 0 ? (value / total) * 100 : 0}%`,
-                        backgroundColor: `rgba(47, 107, 255, ${section.opacity})`,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+      <div className="h-72 w-full border border-black bg-[color:var(--background)] p-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 12, right: 16, bottom: 8, left: 0 }}>
+            <CartesianGrid stroke="rgba(0,0,0,0.14)" strokeDasharray="0" vertical={false} />
+            <XAxis
+              dataKey="date"
+              stroke="#000000"
+              tick={{ fontSize: 11, fill: "#000000" }}
+              tickFormatter={(value: string) => value.slice(5)}
+            />
+            <YAxis stroke="#000000" tick={{ fontSize: 11, fill: "#000000" }} width={36} />
+            <Tooltip
+              contentStyle={{
+                background: "#ffffff",
+                border: "1px solid #000000",
+                borderRadius: 0,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "#000000" }}
+            />
+            {sectionStyles.map((section) => (
+              <Bar
+                key={section.key}
+                dataKey={section.key}
+                stackId="sections"
+                fill={`rgba(47, 107, 255, ${section.opacity})`}
+                stroke="#000000"
+                strokeWidth={0}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
       </div>
       <div className="flex flex-wrap gap-3 text-xs text-black/70">
         {sectionStyles.map((section) => (
@@ -921,22 +940,31 @@ function PublishingBarChart({ points }: { points: TrendPoint[] }) {
     return <EmptyChartState label="No publishing bars to render yet." />;
   }
 
-  const max = Math.max(...points.map((point) => point.value), 1);
-
   return (
     <div className="grid gap-4">
-      <div className="flex h-64 items-end gap-2 border border-black bg-[color:var(--background)] px-4 py-4">
-        {points.map((point) => (
-          <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <div className="flex h-full w-full items-end">
-              <div
-                className="w-full border border-black border-b-0 bg-[color:var(--accent)]"
-                style={{ height: `${(point.value / max) * 100}%` }}
-              />
-            </div>
-            <span className="text-[11px] text-black/70">{point.date.slice(5)}</span>
-          </div>
-        ))}
+      <div className="h-64 w-full border border-black bg-[color:var(--background)] p-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={points} margin={{ top: 12, right: 16, bottom: 8, left: 0 }}>
+            <CartesianGrid stroke="rgba(0,0,0,0.14)" strokeDasharray="0" vertical={false} />
+            <XAxis
+              dataKey="date"
+              stroke="#000000"
+              tick={{ fontSize: 11, fill: "#000000" }}
+              tickFormatter={(value: string) => value.slice(5)}
+            />
+            <YAxis stroke="#000000" tick={{ fontSize: 11, fill: "#000000" }} width={36} />
+            <Tooltip
+              contentStyle={{
+                background: "#ffffff",
+                border: "1px solid #000000",
+                borderRadius: 0,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "#000000" }}
+            />
+            <Bar dataKey="value" fill="var(--accent)" stroke="#000000" strokeWidth={0} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
