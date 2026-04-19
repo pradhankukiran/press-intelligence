@@ -147,6 +147,72 @@ class AnalyticsService:
             ],
         }
 
+    async def search_articles(
+        self,
+        *,
+        from_date: str | None,
+        to_date: str | None,
+        query: str | None,
+        section: str | None,
+        tag: str | None,
+        limit: int,
+        offset: int,
+    ) -> dict[str, object]:
+        if self._settings.data_mode == "mock":
+            return self._mock_store.search_articles(
+                query=query,
+                section=section,
+                tag=tag,
+                limit=limit,
+                offset=offset,
+            )
+        window = self._date_params(from_date, to_date)
+        rows = await self._warehouse.query_from_sql(
+            "analytics/articles_search.sql",
+            scalars={
+                **window,
+                "query_text": query,
+                "section": section,
+                "tag": tag,
+                "row_limit": limit,
+                "row_offset": offset,
+            },
+        )
+        articles = [self._serialize_article_summary(row) for row in rows]
+        return {
+            "range": self._range_label(from_date, to_date),
+            "query": query,
+            "section": section,
+            "tag": tag,
+            "total": len(articles),
+            "articles": articles,
+        }
+
+    async def get_article(self, guardian_id: str) -> dict[str, object] | None:
+        if self._settings.data_mode == "mock":
+            return self._mock_store.get_article(guardian_id)
+        rows = await self._warehouse.query_from_sql(
+            "analytics/article_detail.sql",
+            scalars={"guardian_id": guardian_id},
+        )
+        if not rows:
+            return None
+        article = self._serialize_article_summary(rows[0])
+        article["raw_payload"] = rows[0].get("raw_payload")
+        return article
+
+    def _serialize_article_summary(self, row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "guardian_id": row.get("guardian_id") or "",
+            "web_title": row.get("web_title") or "",
+            "web_url": row.get("web_url"),
+            "section_id": row.get("section_id"),
+            "section_name": row.get("section_name"),
+            "pillar_name": row.get("pillar_name"),
+            "published_at": row.get("published_at") or "",
+            "tags": list(row.get("tags") or []),
+        }
+
     async def get_publishing_volume(
         self,
         from_date: str | None,
