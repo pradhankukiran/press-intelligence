@@ -27,19 +27,23 @@ class AnalyticsService:
     async def get_overview(self, from_date: str | None, to_date: str | None) -> dict[str, object]:
         if self._settings.data_mode == "mock":
             return self._mock_store.overview()
+        window = self._date_params(from_date, to_date)
         metrics_rows = await self._warehouse.query_from_sql(
             "analytics/overview_metrics.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=window,
         )
         freshness_rows = await self._warehouse.query_from_sql("analytics/freshness.sql")
-        run_rows = await self._warehouse.query_from_sql("ops/pipeline_runs.sql", {"limit": 50})
+        run_rows = await self._warehouse.query_from_sql(
+            "ops/pipeline_runs.sql",
+            scalars={"row_limit": 50},
+        )
         volume_rows = await self._warehouse.query_from_sql(
             "analytics/publishing_volume.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=window,
         )
         top_section_rows = await self._warehouse.query_from_sql(
             "analytics/top_sections.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=window,
         )
 
         metrics = metrics_rows[0] if metrics_rows else {}
@@ -92,13 +96,14 @@ class AnalyticsService:
     async def get_sections(self, from_date: str | None, to_date: str | None) -> dict[str, object]:
         if self._settings.data_mode == "mock":
             return self._mock_store.sections()
+        window = self._date_params(from_date, to_date)
         rows = await self._warehouse.query_from_sql(
             "analytics/sections.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=window,
         )
         leaders = await self._warehouse.query_from_sql(
             "analytics/top_sections.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=window,
         )
         return {
             "range": self._range_label(from_date, to_date),
@@ -129,7 +134,7 @@ class AnalyticsService:
             return self._mock_store.tags(limit)
         rows = await self._warehouse.query_from_sql(
             "analytics/tags.sql",
-            params={**self._date_params(from_date, to_date), "limit": limit},
+            scalars={**self._date_params(from_date, to_date), "row_limit": limit},
         )
         return {
             "range": self._range_label(from_date, to_date),
@@ -155,7 +160,7 @@ class AnalyticsService:
             return payload
         rows = await self._warehouse.query_from_sql(
             "analytics/publishing_volume.sql",
-            params=self._date_params(from_date, to_date),
+            scalars=self._date_params(from_date, to_date),
         )
         return {
             "range": self._range_label(from_date, to_date),

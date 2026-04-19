@@ -9,4 +9,4 @@ SELECT
   error_summary
 FROM `{google_cloud_project}.{bigquery_dataset_ops}.pipeline_runs`
 ORDER BY started_at DESC, run_id DESC
-LIMIT {limit};
+LIMIT @row_limit;

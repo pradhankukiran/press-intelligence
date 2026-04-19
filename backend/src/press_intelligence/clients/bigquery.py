@@ -43,26 +43,17 @@ class BigQueryWarehouse:
     async def query_from_sql(
         self,
         sql_path: str,
-        params: dict[str, Any] | None = None,
+        scalars: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         await self.ensure_base_resources()
-        rendered = self._render_sql(sql_path)
-        return await asyncio.to_thread(
-            self._run_query,
-            rendered.format(**self._template_params(params)),
-        )
+        rendered = self._render_sql(sql_path).format(**self._identifier_params())
+        params = self._build_query_params(scalars)
+        return await asyncio.to_thread(self._run_query, rendered, params)
 
-    async def execute_sql(
-        self,
-        sql_path: str,
-        params: dict[str, Any] | None = None,
-    ) -> None:
+    async def execute_sql(self, sql_path: str) -> None:
         await self.ensure_base_resources()
-        rendered = self._render_sql(sql_path)
-        await asyncio.to_thread(
-            self._run_statement,
-            rendered.format(**self._template_params(params)),
-        )
+        rendered = self._render_sql(sql_path).format(**self._identifier_params())
+        await asyncio.to_thread(self._run_statement, rendered)
 
     async def load_articles(self, rows: list[dict[str, Any]]) -> int:
         await self.ensure_base_resources()
@@ -93,9 +84,16 @@ class BigQueryWarehouse:
         client = self._ensure_client()
         list(client.list_datasets(page_size=1))
 
-    def _run_query(self, sql: str) -> list[dict[str, Any]]:
+    def _run_query(
+        self,
+        sql: str,
+        params: list[Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        from google.cloud import bigquery
+
         client = self._ensure_client()
-        query_job = client.query(sql)
+        job_config = bigquery.QueryJobConfig(query_parameters=params or [])
+        query_job = client.query(sql, job_config=job_config)
         results = query_job.result()
         return [dict(row.items()) for row in results]
 
@@ -275,11 +273,29 @@ class BigQueryWarehouse:
                 normalized[key] = str(value)
         return normalized
 
-    def _template_params(self, params: dict[str, Any] | None) -> dict[str, Any]:
+    def _identifier_params(self) -> dict[str, Any]:
         return {
             "google_cloud_project": self._settings.google_cloud_project,
             "bigquery_dataset_raw": self._settings.bigquery_dataset_raw,
             "bigquery_dataset_analytics": self._settings.bigquery_dataset_analytics,
             "bigquery_dataset_ops": self._settings.bigquery_dataset_ops,
-            **(params or {}),
         }
+
+    def _build_query_params(self, scalars: dict[str, Any] | None) -> list[Any]:
+        if not scalars:
+            return []
+        from google.cloud import bigquery
+
+        built: list[Any] = []
+        for name, value in scalars.items():
+            if isinstance(value, bool):
+                bq_type = "BOOL"
+            elif isinstance(value, int):
+                bq_type = "INT64"
+            elif isinstance(value, float):
+                bq_type = "FLOAT64"
+            else:
+                bq_type = "STRING"
+                value = str(value)
+            built.append(bigquery.ScalarQueryParameter(name, bq_type, value))
+        return built

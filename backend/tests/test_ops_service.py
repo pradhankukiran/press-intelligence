@@ -18,10 +18,10 @@ class FakeWarehouse:
     async def query_from_sql(
         self,
         sql_path: str,
-        params: dict[str, object] | None = None,
+        scalars: dict[str, object] | None = None,
     ) -> list[dict[str, object]]:
         if sql_path == "ops/pipeline_runs.sql":
-            limit = int((params or {}).get("limit", 10))
+            limit = int((scalars or {}).get("row_limit", 10))
             return sorted(
                 self.pipeline_runs.values(),
                 key=lambda row: str(row.get("started_at") or ""),

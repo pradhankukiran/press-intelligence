@@ -85,7 +85,10 @@ class OpsService:
         if self._settings.data_mode == "mock":
             return self._mock_store.runs(limit)
         await self._sync_pipeline_runs(limit=max(limit, 25))
-        rows = await self._warehouse.query_from_sql("ops/pipeline_runs.sql", {"limit": limit})
+        rows = await self._warehouse.query_from_sql(
+            "ops/pipeline_runs.sql",
+            scalars={"row_limit": limit},
+        )
         return {"runs": [self._serialize_pipeline_run(row) for row in rows]}
 
     async def trigger_backfill(self, request: BackfillRequest) -> dict[str, object]:
@@ -128,7 +131,10 @@ class OpsService:
         if self._settings.data_mode == "mock":
             return self._mock_store.backfill_status(run_id)
         await self._sync_pipeline_runs(limit=100)
-        rows = await self._warehouse.query_from_sql("ops/pipeline_runs.sql", {"limit": 200})
+        rows = await self._warehouse.query_from_sql(
+            "ops/pipeline_runs.sql",
+            scalars={"row_limit": 200},
+        )
         for row in rows:
             if row["run_id"] == run_id and row["dag_id"] == self._settings.airflow_backfill_dag_id:
                 return self._serialize_pipeline_run(row)
