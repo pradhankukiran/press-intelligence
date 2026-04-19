@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, timedelta, timezone
+from datetime import datetime as _dt
 from typing import Any
 
 import structlog
@@ -161,11 +163,17 @@ class AnalyticsService:
             "series": [{"date": row["date"], "value": int(row["value"])} for row in rows],
         }
 
+    def _resolve_window(self, from_date: str | None, to_date: str | None) -> tuple[str, str]:
+        today = _dt.now(timezone.utc).date()
+        days = max(self._settings.default_window_days - 1, 0)
+        end = date.fromisoformat(to_date) if to_date else today
+        start = date.fromisoformat(from_date) if from_date else end - timedelta(days=days)
+        return start.isoformat(), end.isoformat()
+
     def _date_params(self, from_date: str | None, to_date: str | None) -> dict[str, str]:
-        return {
-            "from_date": from_date or "2026-03-01",
-            "to_date": to_date or "2026-03-12",
-        }
+        start, end = self._resolve_window(from_date, to_date)
+        return {"from_date": start, "to_date": end}
 
     def _range_label(self, from_date: str | None, to_date: str | None) -> str:
-        return f"{from_date or '2026-03-01'} to {to_date or '2026-03-12'}"
+        start, end = self._resolve_window(from_date, to_date)
+        return f"{start} to {end}"
