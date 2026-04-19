@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     default_window_days: int = 12
     quality_missing_section_threshold: int = 0
     quality_missing_published_at_threshold: int = 0
+    alerts_webhook_url: str | None = None
+    alerts_webhook_timeout_seconds: float = 5.0
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
 

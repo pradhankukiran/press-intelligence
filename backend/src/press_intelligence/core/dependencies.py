@@ -4,6 +4,7 @@ from press_intelligence.clients.airflow import AirflowClient
 from press_intelligence.clients.bigquery import BigQueryWarehouse
 from press_intelligence.core.config import Settings, get_settings
 from press_intelligence.core.idempotency import IdempotencyCache
+from press_intelligence.services.alerts import AlertsNotifier
 from press_intelligence.services.analytics_service import AnalyticsService
 from press_intelligence.services.mock_store import MockStore
 from press_intelligence.services.ops_service import OpsService
@@ -30,6 +31,11 @@ def get_idempotency_cache() -> IdempotencyCache:
     return IdempotencyCache()
 
 
+@lru_cache
+def get_alerts_notifier() -> AlertsNotifier:
+    return AlertsNotifier(get_settings())
+
+
 def get_analytics_service() -> AnalyticsService:
     settings = get_settings()
     return AnalyticsService(
@@ -47,6 +53,7 @@ def get_ops_service() -> OpsService:
         warehouse=get_bigquery_warehouse(),
         mock_store=get_mock_store(),
         idempotency_cache=get_idempotency_cache(),
+        alerts=get_alerts_notifier(),
     )
 
 
