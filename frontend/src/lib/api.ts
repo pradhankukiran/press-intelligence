@@ -63,12 +63,19 @@ const EMPTY_RUNS: RunsResponse = {
   runs: [],
 };
 
-export type ApiError = {
-  status: number;
-  code: string;
-  message: string;
-  requestId?: string;
-};
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly requestId?: string;
+
+  constructor(args: { status: number; code: string; message: string; requestId?: string }) {
+    super(args.message);
+    this.name = "ApiError";
+    this.status = args.status;
+    this.code = args.code;
+    this.requestId = args.requestId;
+  }
+}
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -93,13 +100,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // non-JSON body; fall through with defaults
     }
-    const err: ApiError = {
-      status: response.status,
-      code,
-      message,
-      requestId,
-    };
-    throw err;
+    throw new ApiError({ status: response.status, code, message, requestId });
   }
 
   return (await response.json()) as T;

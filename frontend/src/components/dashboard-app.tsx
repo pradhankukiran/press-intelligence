@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, ReactNode, startTransition, useEffect, useState } from "react";
 
 import {
+  ApiError,
   type DashboardData,
   fetchAnalyticsData,
   fetchOperationsData,
@@ -68,7 +69,7 @@ async function fetchDataForRoute(route: RouteKey): Promise<DashboardData> {
 }
 
 export function OverviewApp() {
-  const { data, error, isLoading } = useDashboardData("overview");
+  const { data, error, isLoading, refresh } = useDashboardData("overview");
 
   return (
     <DashboardShell
@@ -86,6 +87,7 @@ export function OverviewApp() {
       }
       error={error}
       isLoading={isLoading}
+      onRetry={refresh}
     >
       {data ? (
         <>
@@ -151,7 +153,7 @@ export function OverviewApp() {
 }
 
 export function AnalyticsApp() {
-  const { data, error, isLoading } = useDashboardData("analytics");
+  const { data, error, isLoading, refresh } = useDashboardData("analytics");
 
   return (
     <DashboardShell
@@ -168,6 +170,7 @@ export function AnalyticsApp() {
       }
       error={error}
       isLoading={isLoading}
+      onRetry={refresh}
     >
       {data ? (
         <>
@@ -230,6 +233,7 @@ export function OperationsApp() {
     setStartDate,
     setEndDate,
     handleBackfill,
+    refresh,
   } = useDashboardData("ops");
 
   return (
@@ -248,6 +252,7 @@ export function OperationsApp() {
       }
       error={error}
       isLoading={isLoading}
+      onRetry={refresh}
     >
       {data ? (
         <>
@@ -350,9 +355,21 @@ export function OperationsApp() {
   );
 }
 
+type DashboardError = { message: string; requestId?: string };
+
+function toDashboardError(loadError: unknown): DashboardError {
+  if (loadError instanceof ApiError) {
+    return { message: loadError.message, requestId: loadError.requestId };
+  }
+  if (loadError instanceof Error) {
+    return { message: loadError.message };
+  }
+  return { message: "Failed to load dashboard." };
+}
+
 function useDashboardData(route: RouteKey) {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<DashboardError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
@@ -373,7 +390,7 @@ function useDashboardData(route: RouteKey) {
         }
       } catch (loadError) {
         if (isActive) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load dashboard.");
+          setError(toDashboardError(loadError));
         }
       } finally {
         if (isActive) {
@@ -397,7 +414,7 @@ function useDashboardData(route: RouteKey) {
       const next = await fetchDataForRoute(selectedRoute);
       startTransition(() => setData(next));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load dashboard.");
+      setError(toDashboardError(loadError));
     } finally {
       setIsLoading(false);
     }
@@ -432,6 +449,7 @@ function useDashboardData(route: RouteKey) {
     setStartDate,
     setEndDate,
     handleBackfill,
+    refresh: () => refreshDashboard(route),
   };
 }
 
@@ -442,14 +460,16 @@ function DashboardShell({
   sidePanel,
   error,
   isLoading,
+  onRetry,
   children,
 }: {
   activeRoute: RouteKey;
   title: string;
   description: string;
   sidePanel: ReactNode;
-  error: string | null;
+  error: DashboardError | null;
   isLoading: boolean;
+  onRetry?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -498,8 +518,28 @@ function DashboardShell({
         {isLoading ? <LoadingPanel /> : null}
 
         {error ? (
-          <section className="border border-black bg-white px-6 py-4 text-sm text-black">
-            {error}
+          <section
+            className={`border px-6 py-4 text-sm ${STATUS_BAD}`}
+            role="alert"
+          >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">Could not load this view.</p>
+                <p className="mt-1">{error.message}</p>
+                {error.requestId ? (
+                  <p className="mt-2 text-xs opacity-80">Request ID: {error.requestId}</p>
+                ) : null}
+              </div>
+              {onRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="inline-flex items-center justify-center border border-current px-4 py-2 text-xs font-semibold uppercase tracking-wide transition hover:bg-white/40"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
           </section>
         ) : null}
 
