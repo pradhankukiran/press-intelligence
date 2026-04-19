@@ -34,7 +34,7 @@ class AnalyticsService:
         freshness_rows = await self._warehouse.query_from_sql("analytics/freshness.sql")
         run_rows = await self._warehouse.query_from_sql(
             "ops/pipeline_runs.sql",
-            scalars={"row_limit": 50},
+            scalars={"row_limit": 50, "row_offset": 0},
         )
         volume_rows = await self._warehouse.query_from_sql(
             "analytics/publishing_volume.sql",

@@ -81,13 +81,13 @@ class OpsService:
             ],
         }
 
-    async def runs(self, limit: int) -> dict[str, object]:
+    async def runs(self, limit: int, offset: int = 0) -> dict[str, object]:
         if self._settings.data_mode == "mock":
-            return self._mock_store.runs(limit)
-        await self._sync_pipeline_runs(limit=max(limit, 25))
+            return self._mock_store.runs(limit, offset=offset)
+        await self._sync_pipeline_runs(limit=max(limit + offset, 25))
         rows = await self._warehouse.query_from_sql(
             "ops/pipeline_runs.sql",
-            scalars={"row_limit": limit},
+            scalars={"row_limit": limit, "row_offset": offset},
         )
         return {"runs": [self._serialize_pipeline_run(row) for row in rows]}
 
@@ -134,7 +134,7 @@ class OpsService:
         await self._sync_pipeline_runs(limit=100)
         rows = await self._warehouse.query_from_sql(
             "ops/pipeline_runs.sql",
-            scalars={"row_limit": 200},
+            scalars={"row_limit": 200, "row_offset": 0},
         )
         for row in rows:
             if row["run_id"] == run_id and row["dag_id"] == self._settings.airflow_backfill_dag_id:

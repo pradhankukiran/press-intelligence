@@ -38,8 +38,8 @@ class MockStore:
         payload["latest_seed"] = self._seed_date
         return payload
 
-    def runs(self, limit: int) -> dict[str, object]:
-        return {"runs": deepcopy(self._runs[:limit])}
+    def runs(self, limit: int, offset: int = 0) -> dict[str, object]:
+        return {"runs": deepcopy(self._runs[offset : offset + limit])}
 
     def trigger_backfill(self, request: BackfillRequest) -> dict[str, object]:
         run_id = f"manual__{uuid4().hex[:12]}"

@@ -136,9 +136,10 @@ async def ops_status(
 @router.get("/ops/runs", tags=["ops"], response_model=RunsResponse)
 async def ops_runs(
     limit: int = 10,
+    offset: int = 0,
     ops_service: OpsService = Depends(get_ops_service),
 ) -> RunsResponse:
-    data = await ops_service.runs(limit=limit)
+    data = await ops_service.runs(limit=limit, offset=offset)
     return RunsResponse.model_validate(data)
 
 
