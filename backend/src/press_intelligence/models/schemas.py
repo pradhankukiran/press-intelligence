@@ -58,7 +58,7 @@ class DataQualityCheck(BaseModel):
 
 class DagStatus(BaseModel):
     id: str
-    status: Literal["healthy", "degraded"]
+    status: Literal["healthy", "degraded", "idle"]
 
 
 class FreshnessPayload(BaseModel):

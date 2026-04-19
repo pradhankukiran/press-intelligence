@@ -6,9 +6,7 @@
   "watermark": "2026-03-12T17:30:00Z",
   "dags": [
     { "id": "guardian_ingest_recent", "status": "healthy" },
-    { "id": "guardian_backfill_range", "status": "idle" },
-    { "id": "guardian_transform_reporting", "status": "healthy" },
-    { "id": "guardian_data_quality", "status": "healthy" }
+    { "id": "guardian_backfill_range", "status": "idle" }
   ],
   "checks": [
     { "name": "Missing section names", "status": "pass", "observed_value": "0", "threshold": "0", "detail": "No null section_name rows in the last 24h." },
